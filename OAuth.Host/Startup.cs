@@ -15,7 +15,6 @@ using Newtonsoft.Json.Serialization;
 using OAuth.Host.Models;
 using OneForAll.Core.Extension;
 using OneForAll.EFCore;
-using System.Collections.Generic;
 
 namespace OAuth.Host
 {
@@ -25,6 +24,7 @@ namespace OAuth.Host
         private readonly string CORS = "Cors";
         private readonly string BASE_HOST = "OAuth.Host";
         private readonly string BASE_DOMAIN = "OAuth.Domain";
+        private readonly string BASE_APPLICATION = "OAuth.Application";
         private readonly string BASE_REPOSITORY = "OAuth.Repository";
 
         public Startup(IConfiguration configuration)
@@ -56,15 +56,22 @@ namespace OAuth.Host
 
             services.AddDbContext<OneForAll_BaseContext>(options =>
                      options.UseSqlServer(Configuration["ConnectionStrings:Default"]));
+
             #endregion
 
             #region IdentityServer4
 
-            // 使用默认证书
             var authServerConfig = new OAuthProviderResource();
+            var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
+            var identityConnString = Configuration["ConnectionStrings:IdentityServer"];
             Configuration.GetSection(AUTH_SERVER).Bind(authServerConfig);
             services.AddIdentityServer()
                 .AddDeveloperSigningCredential()
+                .AddOperationalStore(options =>
+                {
+                    options.ConfigureDbContext = builder => builder.UseSqlServer(identityConnString, sql => sql.MigrationsAssembly(migrationsAssembly));
+                    options.EnableTokenCleanup = true;
+                })
                 .AddInMemoryApiResources(OAuthProvider.GetApiResource(authServerConfig))
                 .AddInMemoryClients(OAuthProvider.GetClients(authServerConfig))
                 .AddInMemoryIdentityResources(OAuthProvider.GetIdentityResource())
@@ -85,13 +92,16 @@ namespace OAuth.Host
                 options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
             });
             #endregion
-
         }
 
         public void ConfigureContainer(ContainerBuilder builder)
         {
             builder.RegisterGeneric(typeof(Repository<>))
                 .As(typeof(IEFCoreRepository<>));
+
+            builder.RegisterAssemblyTypes(Assembly.Load(BASE_APPLICATION))
+                .Where(t => t.Name.EndsWith("Service"))
+                .AsImplementedInterfaces();
 
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_DOMAIN))
                 .Where(t => t.Name.EndsWith("Manager"))

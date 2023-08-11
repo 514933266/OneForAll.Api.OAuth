@@ -20,11 +20,11 @@ namespace OAuth.Domain
     public class OAuthLoginManager : BaseManager, IOAuthLoginManager
     {
         private readonly IMapper _mapper;
-        private readonly IOAuthUserRepository _userRepository;
+        private readonly ISysUserRepository _userRepository;
         private readonly OAuthLoginSetting _setting;
         public OAuthLoginManager(
             IMapper mapper,
-            IOAuthUserRepository userRepository,
+            ISysUserRepository userRepository,
             OAuthLoginSetting setting)
         {
             _mapper = mapper;
