@@ -18,7 +18,7 @@ namespace OAuth.Application.Interfaces
         /// </summary>
         /// <param name="phoneNumber">手机号码</param>
         /// <returns>登录结果</returns>
-        Task<BaseMessage> GetCodeAsync(string phoneNumber);
+        Task<BaseErrType> SendCodeAsync(string phoneNumber);
 
         /// <summary>
         /// 登录

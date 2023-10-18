@@ -10,6 +10,7 @@
     <PackageReference Include="Microsoft.Extensions.Caching.Redis" Version="2.2.0" />
     <PackageReference Include="OneForAll.Core" Version="1.2.0.4" />
     <PackageReference Include="OneForAll.EFCore" Version="1.2.2.6" />
+    <PackageReference Include="TencentCloudSDK" Version="3.0.868" />
   </ItemGroup>
 
   <ItemGroup>

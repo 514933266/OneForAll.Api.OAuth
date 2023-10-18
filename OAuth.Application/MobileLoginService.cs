@@ -9,8 +9,10 @@ using OAuth.Domain.Models;
 using OAuth.Domain.Repositorys;
 using OAuth.HttpService.Interfaces;
 using OAuth.HttpService.Models;
+using OAuth.Public.Models;
 using OneForAll.Core;
 using OneForAll.Core.Extension;
+using OneForAll.Core.Security;
 using OneForAll.Core.Utility;
 using SysLog.HttpService.Interfaces;
 using SysLog.HttpService.Models;
@@ -28,23 +30,22 @@ namespace OAuth.Application
     internal class MobileLoginService : IMobileLoginService
     {
         private readonly string CACHE_KEY = "LoginCode:{0}";
-
         private readonly IConfiguration _config;
-        private readonly ITxCloudSmsHttpService _httpService;
         private readonly IIdentityServer4HttpService _identityHttpService;
         private readonly IMobileLoginManager _manager;
+        private readonly ITxCloudSmsManager _smsManager;
         private readonly IDistributedCache _cacheRepository;
 
         public MobileLoginService(
             IConfiguration config,
-            ITxCloudSmsHttpService httpService,
             IIdentityServer4HttpService identityHttpService,
             IMobileLoginManager manager,
+            ITxCloudSmsManager smsManager,
             IDistributedCache cacheRepository)
         {
             _config = config;
             _manager = manager;
-            _httpService = httpService;
+            _smsManager = smsManager;
             _identityHttpService = identityHttpService;
             _cacheRepository = cacheRepository;
         }
@@ -54,9 +55,8 @@ namespace OAuth.Application
         /// </summary>
         /// <param name="phoneNumber">手机号码</param>
         /// <returns>登录结果</returns>
-        public async Task<BaseMessage> GetCodeAsync(string phoneNumber)
+        public async Task<BaseErrType> SendCodeAsync(string phoneNumber)
         {
-            var msg = new BaseMessage();
             var cacheKey = CACHE_KEY.Fmt(phoneNumber);
             var templateId = _config["TxCloudSms:TemplateId"];
             var signName = _config["TxCloudSms:SignName"];
@@ -65,7 +65,7 @@ namespace OAuth.Application
             {
                 var exists = await _cacheRepository.GetStringAsync(cacheKey);
                 if (!exists.IsNullOrEmpty())
-                    return msg.Fail("验证码已发送，请稍后重新获取！");
+                    return BaseErrType.DataExist;
 
                 await _cacheRepository.SetStringAsync(cacheKey, code, new DistributedCacheEntryOptions()
                 {
@@ -76,7 +76,16 @@ namespace OAuth.Application
             {
                 throw new Exception("Redis服务未启动！");
             }
-            return await _httpService.SendAsync(signName, code, templateId, phoneNumber);
+
+            var sign = (code + DateTime.Now.ToString("yyyyMMddhhmm")).ToMd5();
+            return await _smsManager.SendAsync(new TxCloudSmsForm()
+            {
+                SignName = signName,
+                Content = code,
+                TemplateId = templateId,
+                PhoneNumber = phoneNumber,
+                Sign = sign
+            });
         }
 
         /// <summary>

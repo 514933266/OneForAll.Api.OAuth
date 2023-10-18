@@ -25,9 +25,16 @@ namespace OAuth.Host.Controllers
         /// <returns>实体</returns>
         [HttpPost]
         [Route("Code")]
-        public async Task<BaseMessage> GetCodeAsync([FromBody] string phoneNumber)
+        public async Task<BaseMessage> SendCodeAsync([FromBody] string phoneNumber)
         {
-            return await _service.GetCodeAsync(phoneNumber);
+            var msg = new BaseMessage();
+            msg.ErrType = await _service.SendCodeAsync(phoneNumber);
+            switch (msg.ErrType)
+            {
+                case BaseErrType.Success: return msg.Success("发送成功");
+                case BaseErrType.DataExist: return msg.Fail("短信已发送，请1分钟后再重新获取");
+                default: return msg.Fail("发送失败");
+            }
         }
 
         /// <summary>
