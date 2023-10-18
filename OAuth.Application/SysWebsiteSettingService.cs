@@ -31,13 +31,11 @@ namespace OAuth.Application
         /// <returns>实体</returns>
         public async Task<SysWebsiteSettingDto> GetAsync(string host)
         {
+            var result = new SysWebsiteSettingDto() { Name = "未注册授权域名" };
             var data = await _repository.GetByHostWithContactAsync(host);
-            var result = _mapper.Map<SysWebsiteSettingAggr, SysWebsiteSettingDto>(data);
-            if (result.Host.IsNullOrEmpty())
-            {
-                result.Name = "未注册授权域名";
-            }
-            return result;
+            if (data == null)
+                return result;
+            return _mapper.Map<SysWebsiteSettingAggr, SysWebsiteSettingDto>(data); ;
         }
     }
 }

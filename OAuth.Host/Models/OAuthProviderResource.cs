@@ -13,11 +13,16 @@ namespace OAuth.Host.Models
         /// <summary>
         /// Api
         /// </summary>
-        public ICollection<string> ApiResources { get; set; }
+        public List<string> ApiResources { get; set; } = new List<string>();
 
         /// <summary>
         /// 客户端
         /// </summary>
-        public ICollection<OAuthClient> Clients { get; set; }
+        public List<OAuthClient> Clients { get; set; } = new List<OAuthClient>();
+
+        /// <summary>
+        /// Api范围
+        /// </summary>
+        public List<string> ApiScopes { get; set; } = new List<string>();
     }
 }

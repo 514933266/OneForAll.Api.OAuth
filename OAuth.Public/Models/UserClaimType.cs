@@ -1,9 +1,13 @@
-﻿namespace OAuth.Host.Models
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace OAuth.Public.Models
 {
     /// <summary>
-    /// 身份信息类型
+    /// 授权用户身份信息
     /// </summary>
-    public class OAuthUserClaimType
+    public static class UserClaimType
     {
         /// <summary>
         /// 租户id
@@ -31,6 +35,11 @@
         public const string ROLE = "Role";
 
         /// <summary>
+        /// 范围
+        /// </summary>
+        public const string Policy = "Policy";
+
+        /// <summary>
         /// 人员档案id
         /// </summary>
         public const string PERSON_ID = "PersonId";
@@ -39,5 +48,20 @@
         /// 是否默认用户
         /// </summary>
         public const string IS_DEFAULT = "IsDefault";
+
+        /// <summary>
+        /// 微信Appid
+        /// </summary>
+        public const string WX_APPID = "WxAppId";
+
+        /// <summary>
+        /// 微信Openid
+        /// </summary>
+        public const string WX_OPENID = "WxOpenId";
+
+        /// <summary>
+        /// 微信unionId
+        /// </summary>
+        public const string WX_UNIONID = "WxUnionId";
     }
 }

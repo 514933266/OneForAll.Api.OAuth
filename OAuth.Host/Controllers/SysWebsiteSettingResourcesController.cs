@@ -16,7 +16,7 @@ namespace OAuth.Host.Controllers
     /// <summary>
     /// 网站设置
     /// </summary>
-    [Route("api/[controller]")]
+    [Route("open-api/[controller]")]
     public class SysWebsiteSettingResourcesController : Controller
     {
         private readonly ISysWebsiteSettingService _service;
@@ -30,7 +30,7 @@ namespace OAuth.Host.Controllers
         /// </summary>
         /// <returns>实体</returns>
         [HttpGet]
-        [Route("Current")]
+        [Route("1")]
         public async Task<SysWebsiteSettingDto> GetAsync()
         {
             var origin = Request.Headers["Origin"].ToString();

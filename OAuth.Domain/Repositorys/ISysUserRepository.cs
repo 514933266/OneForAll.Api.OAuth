@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Threading.Tasks;
 using OAuth.Domain.AggregateRoots;
+using OAuth.Domain.Aggregates;
 using OneForAll.EFCore;
 
 namespace OAuth.Domain.Repositorys
@@ -15,15 +16,7 @@ namespace OAuth.Domain.Repositorys
         /// </summary>
         /// <param name="username">用户名</param>
         /// <returns>系统用户</returns>
-        Task<SysUser> GetWithTenantAsync(string username);
-
-        /// <summary>
-        /// 查询用户信息
-        /// </summary>
-        /// <param name="tenantId">机构id</param>
-        /// <param name="username">用户名</param>
-        /// <returns>系统用户</returns>
-        Task<SysUser> GetWithTenantAsync(Guid tenantId, string username);
+        Task<SysLoginUserAggr> GetWithTenantAsync(string username);
 
     }
 }

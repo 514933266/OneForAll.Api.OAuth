@@ -23,21 +23,21 @@ namespace OAuth.Domain.AggregateRoots
         /// 名称
         /// </summary>
         [Required]
-        [MaxLength(20)]
+        [StringLength(20)]
         public string Name { get; set; }
 
         /// <summary>
         /// 代码
         /// </summary>
         [Required]
-        [MaxLength(20)]
+        [StringLength(20)]
         public string Code { get; set; }
 
         /// <summary>
         /// 请求的域名
         /// </summary>
         [Required]
-        [MaxLength(200)]
+        [StringLength(200)]
         public string Host { get; set; }
     }
 }

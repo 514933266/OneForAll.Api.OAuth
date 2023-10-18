@@ -17,49 +17,49 @@ namespace OAuth.Domain.AggregateRoots
         /// 网站名称
         /// </summary>
         [Required]
-        [MaxLength(100)]
+        [StringLength(100)]
         public string Name { get; set; }
 
         /// <summary>
         /// 域名
         /// </summary>
         [Required]
-        [MaxLength(200)]
+        [StringLength(200)]
         public string Host { get; set; }
 
         /// <summary>
         /// 客户端
         /// </summary>
         [Required]
-        [MaxLength(20)]
+        [StringLength(20)]
         public string OAuthClientId { get; set; }
 
         /// <summary>
         /// 客户端密码
         /// </summary>
         [Required]
-        [MaxLength(50)]
+        [StringLength(50)]
         public string OAuthClientSecret { get; set; }
 
         /// <summary>
         /// 客户端名称
         /// </summary>
         [Required]
-        [MaxLength(100)]
+        [StringLength(100)]
         public string OAuthClientName { get; set; }
 
         /// <summary>
         /// 授权地址
         /// </summary>
         [Required]
-        [MaxLength(1000)]
+        [StringLength(1000)]
         public string OAuthUrl { get; set; }
 
         /// <summary>
         /// 登录背景图地址
         /// </summary>
         [Required]
-        [MaxLength(1000)]
+        [StringLength(1000)]
         public string LoginBackgroundUrl { get; set; } = "";
 
     }

@@ -11,6 +11,8 @@ using AutoMapper;
 using Microsoft.Extensions.Caching.Distributed;
 using OneForAll.Core.Extension;
 using OAuth.Repository;
+using OAuth.Public.Models;
+using OAuth.Domain.Aggregates;
 
 namespace OAuth.Domain
 {
@@ -63,19 +65,23 @@ namespace OAuth.Domain
         /// <param name="user">用户</param>
         /// <param name="result">传入结果</param>
         /// <returns>结果</returns>
-        private void ValidateUserAsync(SysUser user, OAuthLoginResult result)
+        private void ValidateUserAsync(SysLoginUserAggr user, OAuthLoginResult result)
         {
-            if (user == null || user.SysTenant == null)
+            if (user == null)
             {
                 result.ErrType = BaseErrType.DataNotFound;
             }
-            else if (user.Status == (int)BaseErrType.NotAllow || user.SysTenant.IsEnabled == false)
+            else if (user.Status == (int)BaseErrType.NotAllow)
+            {
+                result.ErrType = BaseErrType.NotAllow;
+            }
+            else if (user.SysTenant != null && user.SysTenant.IsEnabled == false)
             {
                 result.ErrType = BaseErrType.NotAllow;
             }
             else
             {
-                var loginUser = _mapper.Map<SysUser, OAuthLoginUser>(user);
+                var loginUser = _mapper.Map<SysUser, LoginUser>(user);
                 result.User = loginUser;
             }
         }

@@ -1,4 +1,5 @@
 ﻿using OAuth.Domain.ValueObjects;
+using OAuth.Public.Models;
 using OneForAll.Core;
 using OneForAll.Core.DDD;
 using OneForAll.Core.Extension;
@@ -22,39 +23,37 @@ namespace OAuth.Domain.AggregateRoots
         [Required]
         public Guid SysTenantId { get; set; }
 
-        public virtual SysTenant SysTenant { get; set; }
-
         /// <summary>
         /// 账号
         /// </summary>
         [Required]
-        [MaxLength(20)]
+        [StringLength(32)]
         public string UserName { get; set; }
 
         /// <summary>
         /// 密码
         /// </summary>
-        [MaxLength(32)]
+        [StringLength(32)]
         public string Password { get; set; }
 
         /// <summary>
         /// 名称
         /// </summary>
         [Required]
-        [MaxLength(20)]
+        [StringLength(20)]
         public string Name { get; set; }
 
         /// <summary>
         /// 头像
         /// </summary>
-        [MaxLength(300)]
-        public string IconUrl { get; set; }
+        [StringLength(300)]
+        public string IconUrl { get; set; } = "";
 
         /// <summary>
         /// 个性签名
         /// </summary>
-        [MaxLength(100)]
-        public string Signature { get; set; }
+        [StringLength(100)]
+        public string Signature { get; set; } = "";
 
         /// <summary>
         /// 用户状态（关联BaseErrType，1正常 0异常 -20006禁止登录)
@@ -71,14 +70,14 @@ namespace OAuth.Domain.AggregateRoots
         /// <summary>
         /// 最后登陆时间
         /// </summary>
-        [Column(TypeName ="datetime")]
+        [Column(TypeName = "datetime")]
         public DateTime? LastLoginTime { get; set; }
 
         /// <summary>
         /// 最后登陆Ip
         /// </summary>
         [Column(TypeName = "varchar(50)")]
-        public string LastLoginIp { get; set; }
+        public string LastLoginIp { get; set; } = "";
 
         /// <summary>
         /// 状态最后更新时间（Status）
@@ -91,6 +90,5 @@ namespace OAuth.Domain.AggregateRoots
         /// </summary>
         [Required]
         public byte PwdErrCount { get; set; }
-        
     }
 }

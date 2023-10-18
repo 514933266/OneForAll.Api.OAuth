@@ -9,11 +9,13 @@
 
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="12.0.1" />
-    <PackageReference Include="OneForAll.Core" Version="1.2.0.3" />
+    <PackageReference Include="OneForAll.Core" Version="1.2.0.4" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\OAuth.Domain\OAuth.Domain.csproj" />
+    <ProjectReference Include="..\OAuth.HttpService\OAuth.HttpService.csproj" />
+    <ProjectReference Include="..\OAuth.Public\OAuth.Public.csproj" />
     <ProjectReference Include="..\OAuth.Repository\OAuth.Repository.csproj" />
   </ItemGroup>
 

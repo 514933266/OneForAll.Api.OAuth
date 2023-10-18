@@ -13,6 +13,11 @@ using OneForAll.Core.Extension;
 using OAuth.Host.Models;
 using OAuth.Domain.Interfaces;
 using System.Linq;
+using OAuth.Public.Models;
+using IdentityServer4.EntityFramework.Entities;
+using OAuth.Domain.AggregateRoots;
+using Microsoft.Extensions.Configuration;
+using OAuth.Domain.Repositorys;
 
 namespace OAuth.Host.Models
 {
@@ -20,15 +25,21 @@ namespace OAuth.Host.Models
     {
         private readonly OAuthProviderResource _config;
         private readonly IOAuthLoginManager _loginManager;
+        private readonly ISysWechatUserManager _wxUserManager;
+        private readonly ISysWxClientSettingRepository _wxClientRepository;
         private readonly IHttpContextAccessor _accessor;
         public OAuthResourceOwnerPasswordValidator(
             OAuthProviderResource config,
             IOAuthLoginManager loginManager,
+            ISysWechatUserManager wxUserManager,
+            ISysWxClientSettingRepository wxClientRepository,
             IHttpContextAccessor accessor)
         {
             _config = config;
             _accessor = accessor;
             _loginManager = loginManager;
+            _wxUserManager = wxUserManager;
+            _wxClientRepository = wxClientRepository;
         }
 
         public async Task ValidateAsync(ResourceOwnerPasswordValidationContext context)
@@ -43,21 +54,35 @@ namespace OAuth.Host.Models
             var result = await _loginManager.LoginAsync(user);
             if (result.ErrType == BaseErrType.Success)
             {
-                ValidateSuccess(context, result);
+                await ValidateSuccess(context, result);
             }
             else
             {
-                ValidateFail(context, result);
+                await ValidateFail(context, result);
             }
         }
 
-        private void ValidateSuccess(ResourceOwnerPasswordValidationContext context, OAuthLoginResult result)
+        private async Task ValidateSuccess(ResourceOwnerPasswordValidationContext context, OAuthLoginResult result)
         {
-            var claims = SetAdminClaims(context, result.User);
+            var client = _config.Clients.FirstOrDefault(w => w.Id == context.Request.Client.ClientId);
+            result.User.ApiRole = client.Role;
+
+            var claims = SetAdminClaims(result.User);
+            if (client.IsWechat)
+            {
+                // 微信客户端
+                var wxClient = await _wxClientRepository.GetAsync(w => w.ClientId == client.Id);
+                if (wxClient == null)
+                    throw new Exception("未配置微信客户端信息");
+
+                var wxUser = await _wxUserManager.GetAsync(wxClient.AppId, result.User.Id);
+                var wxClaims = SetWechatClaims(wxUser);
+                claims.AddRange(wxClaims);
+            }
+
             context.Result = new GrantValidationResult(context.UserName, OidcConstants.AuthenticationMethods.Password,
                 claims, "local",
-                new Dictionary<string, object>
-                {
+                new Dictionary<string, object>{
                 {
                     OAuthConst.RESULT,
                     new BaseMessage().Success("登陆成功")
@@ -65,7 +90,7 @@ namespace OAuth.Host.Models
             });
         }
 
-        private void ValidateFail(ResourceOwnerPasswordValidationContext context, OAuthLoginResult result)
+        private async Task ValidateFail(ResourceOwnerPasswordValidationContext context, OAuthLoginResult result)
         {
             var msg = new BaseMessage().Fail();
             switch (result.ErrType)
@@ -84,18 +109,25 @@ namespace OAuth.Host.Models
             });
         }
 
-        private IEnumerable<Claim> SetAdminClaims(ResourceOwnerPasswordValidationContext context, OAuthLoginUser user)
+        private List<Claim> SetAdminClaims(LoginUser user)
         {
-            // 当为默认机构的默认用户登录时，角色设为开发人员
-            var client = _config.Clients.FirstOrDefault(w => w.Id == context.Request.Client.ClientId);
-            return new List<Claim> {
-                    new Claim(OAuthUserClaimType.USERNAME, user.UserName),
-                    new Claim(OAuthUserClaimType.USER_NICKNAME, user.Name),
-                    new Claim(OAuthUserClaimType.USER_ID, user.Id.ToString()),
-                    new Claim(OAuthUserClaimType.TENANT_ID, user.TenantId.ToString()),
-                    new Claim(OAuthUserClaimType.PERSON_ID, user.PersonId.ToString()),
-                    new Claim(OAuthUserClaimType.IS_DEFAULT, user.IsDefault.ToString()),
-                    new Claim(OAuthUserClaimType.ROLE, (user.IsDefault && user.IsDefaultTenant)? OAuthUserRoleType.RULER: client.Role)
+            return user == null ? new List<Claim>() : new List<Claim> {
+                    new Claim(UserClaimType.USERNAME, user.UserName),
+                    new Claim(UserClaimType.USER_NICKNAME, user.Name),
+                    new Claim(UserClaimType.USER_ID, user.Id.ToString()),
+                    new Claim(UserClaimType.TENANT_ID, user.TenantId.ToString()),
+                    new Claim(UserClaimType.PERSON_ID, user.PersonId.ToString()),
+                    new Claim(UserClaimType.IS_DEFAULT, user.IsDefault.ToString()),
+                    new Claim(UserClaimType.ROLE, user.ApiRole)
+            };
+        }
+
+        private List<Claim> SetWechatClaims(SysWechatUser user)
+        {
+            return user == null ? new List<Claim>() : new List<Claim> {
+                    new Claim(UserClaimType.WX_APPID, user.AppId),
+                    new Claim(UserClaimType.WX_OPENID, user.OpenId),
+                    new Claim(UserClaimType.WX_UNIONID, user.UnionId)
             };
         }
     }

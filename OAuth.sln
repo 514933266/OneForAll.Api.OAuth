@@ -11,6 +11,10 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OAuth.Repository", "OAuth.R
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OAuth.Application", "OAuth.Application\OAuth.Application.csproj", "{BCB1740D-E07B-4899-91DC-574102396798}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OAuth.Public", "OAuth.Public\OAuth.Public.csproj", "{A1AE6C40-D9ED-4E25-9C17-04C6FA14A45B}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OAuth.HttpService", "OAuth.HttpService\OAuth.HttpService.csproj", "{B1DD67C3-3962-42FD-B1CA-E71611E856F5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -51,6 +55,22 @@ Global
 		{BCB1740D-E07B-4899-91DC-574102396798}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BCB1740D-E07B-4899-91DC-574102396798}.Release|x86.ActiveCfg = Release|Any CPU
 		{BCB1740D-E07B-4899-91DC-574102396798}.Release|x86.Build.0 = Release|Any CPU
+		{A1AE6C40-D9ED-4E25-9C17-04C6FA14A45B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A1AE6C40-D9ED-4E25-9C17-04C6FA14A45B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A1AE6C40-D9ED-4E25-9C17-04C6FA14A45B}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{A1AE6C40-D9ED-4E25-9C17-04C6FA14A45B}.Debug|x86.Build.0 = Debug|Any CPU
+		{A1AE6C40-D9ED-4E25-9C17-04C6FA14A45B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A1AE6C40-D9ED-4E25-9C17-04C6FA14A45B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A1AE6C40-D9ED-4E25-9C17-04C6FA14A45B}.Release|x86.ActiveCfg = Release|Any CPU
+		{A1AE6C40-D9ED-4E25-9C17-04C6FA14A45B}.Release|x86.Build.0 = Release|Any CPU
+		{B1DD67C3-3962-42FD-B1CA-E71611E856F5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1DD67C3-3962-42FD-B1CA-E71611E856F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1DD67C3-3962-42FD-B1CA-E71611E856F5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B1DD67C3-3962-42FD-B1CA-E71611E856F5}.Debug|x86.Build.0 = Debug|Any CPU
+		{B1DD67C3-3962-42FD-B1CA-E71611E856F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1DD67C3-3962-42FD-B1CA-E71611E856F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1DD67C3-3962-42FD-B1CA-E71611E856F5}.Release|x86.ActiveCfg = Release|Any CPU
+		{B1DD67C3-3962-42FD-B1CA-E71611E856F5}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

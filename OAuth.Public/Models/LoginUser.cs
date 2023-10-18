@@ -1,17 +1,16 @@
-﻿using OAuth.Domain.ValueObjects;
-using OneForAll.Core;
-using OneForAll.Core.Extension;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
-namespace OAuth.Domain.Models
+namespace OAuth.Public.Models
 {
     /// <summary>
-    /// 已登录用户
+    /// 系统登录用户
     /// </summary>
-    public class OAuthLoginUser
+    public class LoginUser
     {
         public Guid Id { get; set; }
 
@@ -44,5 +43,25 @@ namespace OAuth.Domain.Models
         /// 是否默认（默认用户不可删除）
         /// </summary>
         public bool IsDefault { get; set; }
+
+        /// <summary>
+        /// Api权限角色
+        /// </summary>
+        public string ApiRole { get; set; }
+
+        /// <summary>
+        /// 微信登录端id
+        /// </summary>
+        public string WxAppId { get; set; }
+
+        /// <summary>
+        /// 微信登录端openid
+        /// </summary>
+        public string WxOpenId { get; set; }
+
+        /// <summary>
+        /// 微信登录端unionid
+        /// </summary>
+        public string WxUnionId { get; set; }
     }
 }

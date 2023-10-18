@@ -21,21 +21,21 @@ namespace OAuth.Domain.AggregateRoots
         /// 名称
         /// </summary>
         [Required]
-        [MaxLength(50)]
+        [StringLength(50)]
         public string Name { get; set; }
 
         /// <summary>
         /// 代码
         /// </summary>
         [Required]
-        [MaxLength(50)]
+        [StringLength(50)]
         public string Code { get; set; }
 
         /// <summary>
         /// 负责人
         /// </summary>
         [Required]
-        [MaxLength(50)]
+        [StringLength(50)]
         public string Manager { get; set; }
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace OAuth.Domain.AggregateRoots
         /// 地址
         /// </summary>
         [Required]
-        [MaxLength(300)]
+        [StringLength(300)]
         public string Address { get; set; }
 
         /// <summary>
@@ -68,7 +68,7 @@ namespace OAuth.Domain.AggregateRoots
         /// 描述
         /// </summary>
         [Required]
-        [MaxLength(300)]
+        [StringLength(300)]
         public string Description { get; set; }
 
         /// <summary>

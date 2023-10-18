@@ -33,6 +33,11 @@ namespace OAuth.Host.Models
         /// <summary>
         /// 范围
         /// </summary>
-        public ICollection<string> Scopes { get; set; }
+        public List<string> Scopes { get; set; } = new List<string>();
+
+        /// <summary>
+        /// 是否微信客户端
+        /// </summary>
+        public bool IsWechat { get; set; }
     }
 }

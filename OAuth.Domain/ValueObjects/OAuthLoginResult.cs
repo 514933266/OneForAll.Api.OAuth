@@ -1,5 +1,6 @@
 ﻿using OAuth.Domain.AggregateRoots;
 using OAuth.Domain.Models;
+using OAuth.Public.Models;
 using OneForAll.Core;
 
 namespace OAuth.Domain.ValueObjects
@@ -17,7 +18,7 @@ namespace OAuth.Domain.ValueObjects
         /// <summary>
         /// 用户信息
         /// </summary>
-        public OAuthLoginUser User { get; set; }
+        public LoginUser User { get; set; }
 
         /// <summary>
         /// 剩余密码可错误次数
