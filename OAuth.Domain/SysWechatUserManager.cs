@@ -99,6 +99,7 @@ namespace OAuth.Domain
             }
             else
             {
+                data.SysUserId = user.Id;
                 data.SessionKey = entity.SessionKey;
                 data.AccessToken = entity.AccessToken;
                 data.AccessTokenCreateTime = entity.AccessTokenCreateTime;

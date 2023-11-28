@@ -70,7 +70,9 @@ namespace OAuth.Application
         {
             var client = await _clientRepository.GetAsync(w => w.ClientId == form.Client.Id);
             if (client == null)
-                return new BaseMessage().Fail("客户端未授权");
+                return new BaseMessage().Fail(BaseErrType.NotAllow, "客户端未授权");
+            if (client.ClientSecret != form.Client.Secret)
+                return new BaseMessage().Fail(BaseErrType.PasswordInvalid, "客户端密码错误");
 
             var msg = await _httpService.LoginAsync(client.AppId, client.AppSecret, form.Code);
             if (msg.Status)

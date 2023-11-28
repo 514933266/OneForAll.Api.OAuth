@@ -96,7 +96,7 @@ namespace SysLog.HttpService
                 }
                 else
                 {
-                    throw new Exception($"获取手机号失败，错误码{data.ErrMsg}");
+                    return "";
                 }
             }
             return phoneNumber;

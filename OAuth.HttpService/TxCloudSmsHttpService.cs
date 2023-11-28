@@ -60,7 +60,7 @@ namespace OAuth.HttpService
 
                 if (!data.Status)
                 {
-                    throw new Exception($"发送短信失败：{data.Message}");
+                    data.Message = $"发送短信失败：{data.Message}";
                 }
             }
             return data;

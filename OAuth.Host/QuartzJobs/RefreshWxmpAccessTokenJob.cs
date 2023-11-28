@@ -36,19 +36,20 @@ namespace OAuth.Host.QuartzJobs
             var clients = await _wxSettingRepository.GetListAsync();
             foreach (var client in clients)
             {
-                var isInvalid = DateTime.Now.AddSeconds(client.AccessTokenExpiresIn) <= DateTime.Now;
+                var isInvalid = client.AccessTokenCreateTime == null ? true : client.AccessTokenCreateTime.Value.AddSeconds(client.AccessTokenExpiresIn) <= DateTime.Now;
                 if (isInvalid)
                 {
-                    num++;
                     var response = await _wxHttpService.GetAccessTokenAsync(client.AppId, client.AppSecret);
                     if (!response.AccessToken.IsNullOrEmpty())
                     {
+                        num++;
                         client.AccessToken = response.AccessToken;
                         client.AccessTokenExpiresIn = response.ExpiresIn;
                         client.AccessTokenCreateTime = DateTime.Now;
                     }
                 }
             }
+            num = await _wxSettingRepository.SaveChangesAsync();
             await _jobHttpService.LogAsync(_config.ClientCode, typeof(RefreshWxmpAccessTokenJob).Name, $"巡检刷新微信客户端AccessToken任务执行完成，共有{clients.Count()}个客户端,更新{num}个");
         }
     }

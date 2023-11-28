@@ -41,12 +41,8 @@ namespace OAuth.HttpService
             {
                 var url = $"{client.BaseAddress}?appid={appId}&secret={appSecret}&grant_type=client_credential";
                 var result = await client.GetAsync(new Uri(url));
-                data = await result.Content.ReadAsAsync<WxAccessTokenResponse>();
-
-                if (data.AccessToken.IsNullOrEmpty())
-                {
-                    throw new Exception($"获取微信授权凭据失败：{result.Content.ReadAsStringAsync().Result}");
-                }
+                var str = await result.Content.ReadAsStringAsync();
+                data = str.FromJson<WxAccessTokenResponse>();
             }
             return data;
         }
