@@ -13,6 +13,7 @@ using OneForAll.Core.Extension;
 using OAuth.Repository;
 using OAuth.Public.Models;
 using OAuth.Domain.Aggregates;
+using OAuth.Domain.Enums;
 
 namespace OAuth.Domain
 {
@@ -69,20 +70,33 @@ namespace OAuth.Domain
         {
             if (user == null)
             {
+                // 账号不存在
                 result.ErrType = BaseErrType.DataNotFound;
             }
-            else if (user.Status == (int)BaseErrType.NotAllow)
+            else if (user.SysTenant?.IsEnabled == false)
             {
-                result.ErrType = BaseErrType.NotAllow;
+                // 机构停用
+                result.ErrType = BaseErrType.PermissionNotEnough;
             }
-            else if (user.SysTenant != null && user.SysTenant.IsEnabled == false)
+            else if (user.Status == SysUserStatusEnum.Normal)
             {
+                var loginUser = _mapper.Map<SysUser, LoginUser>(user);
+                result.User = loginUser;
+            }
+            else if (user.Status >= SysUserStatusEnum.Frozen && user.Status < SysUserStatusEnum.Banned)
+            {
+                // 账号冻结
+                result.ErrType = BaseErrType.Frozen;
+            }
+            else if (user.Status == SysUserStatusEnum.Banned)
+            {
+                // 永久封禁
                 result.ErrType = BaseErrType.NotAllow;
             }
             else
             {
-                var loginUser = _mapper.Map<SysUser, LoginUser>(user);
-                result.User = loginUser;
+                // 账号异常
+                result.ErrType = BaseErrType.DataError;
             }
         }
 
@@ -94,15 +108,33 @@ namespace OAuth.Domain
         private void ValidateBanTimeAsync(SysUser user, OAuthLoginResult result)
         {
             result.LessBanTime = 0;
-            if (user.Status == (int)BaseErrType.Frozen)
+            var bantime = GetBanTotalMinutes(user);
+            if (bantime > 0)
             {
                 var timespan = DateTime.Now - (user.UpdateTime == null ? DateTime.Now : user.UpdateTime.Value);
-                var bantime = _setting.BanTime;
                 result.LessBanTime = bantime - timespan.TotalMinutes;
                 if (timespan.TotalMinutes <= bantime)
                 {
                     result.ErrType = BaseErrType.Frozen;
                 }
+            }
+        }
+
+        // 获取禁止登录时间
+        private int GetBanTotalMinutes(SysUser user)
+        {
+            switch (user.Status)
+            {
+                case SysUserStatusEnum.Normal: return 0;
+                case SysUserStatusEnum.Frozen: return 30;
+                case SysUserStatusEnum.FrozenOneHour: return 60;
+                case SysUserStatusEnum.FrozenThreeHour: return 180;
+                case SysUserStatusEnum.FrozenDay: return 1440;
+                case SysUserStatusEnum.FrozenThreeDay: return 4320;
+                case SysUserStatusEnum.FrozenSevenDay: return 10080;
+                case SysUserStatusEnum.FrozenMonth: return 43200;
+                case SysUserStatusEnum.FrozenThreeMonth: return 129600;
+                default: return int.MaxValue;
             }
         }
 
@@ -121,7 +153,7 @@ namespace OAuth.Domain
                 {
                     user.PwdErrCount = 0;
                     user.UpdateTime = DateTime.Now;
-                    user.Status = (int)BaseErrType.Frozen;
+                    user.Status = SysUserStatusEnum.Frozen;
                     await _userRepository.UpdateAsync(user);
 
                     result.LessPwdErrCount = 0;
@@ -150,7 +182,7 @@ namespace OAuth.Domain
             user.LastLoginIp = loginIp;
             user.LastLoginTime = DateTime.Now;
             user.UpdateTime = DateTime.Now;
-            user.Status = (int)BaseErrType.Success;
+            user.Status = SysUserStatusEnum.Normal;
             return await ResultAsync(() => _userRepository.UpdateAsync(user));
         }
     }

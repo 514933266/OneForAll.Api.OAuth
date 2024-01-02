@@ -11,7 +11,7 @@ namespace OAuth.Host.Profiles
     {
         public SysWechatUserProfile()
         {
-            CreateMap<SysWechatUser, SysWxUserBaseDto>()
+            CreateMap<SysWxUser, SysWxUserBaseDto>()
                 .ForMember(t => t.UserId, a => a.MapFrom(e => e.SysUserId));
         }
     }

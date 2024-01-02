@@ -49,5 +49,10 @@ namespace OAuth.HttpService.Models
         /// 定时任务调度中心
         /// </summary>
         public string ScheduleJob { get; set; } = "ScheduleJob";
+
+        /// <summary>
+        /// 全局异常日志
+        /// </summary>
+        public string SysGlobalExceptionLog { get; set; } = "SysGlobalExceptionLog";
     }
 }

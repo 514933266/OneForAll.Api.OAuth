@@ -24,14 +24,14 @@ namespace OAuth.Application
         private readonly IConfiguration _config;
         private readonly IWxmpHttpService _httpService;
         private readonly IIdentityServer4HttpService _identityHttpService;
-        private readonly ISysWechatUserManager _manager;
+        private readonly ISysWxUserManager _manager;
         private readonly ISysUserRepository _userRepository;
         public WxgzhLoginService(
             IMapper mapper,
             IConfiguration config,
             IWxmpHttpService httpService,
             IIdentityServer4HttpService identityHttpService,
-            ISysWechatUserManager manager,
+            ISysWxUserManager manager,
             ISysUserRepository userRepository)
         {
             _mapper = mapper;

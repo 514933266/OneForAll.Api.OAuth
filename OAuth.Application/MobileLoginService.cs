@@ -4,9 +4,12 @@ using Microsoft.Extensions.Configuration;
 using OAuth.Application.Interfaces;
 using OAuth.Domain;
 using OAuth.Domain.AggregateRoots;
+using OAuth.Domain.Aggregates;
+using OAuth.Domain.Enums;
 using OAuth.Domain.Interfaces;
 using OAuth.Domain.Models;
 using OAuth.Domain.Repositorys;
+using OAuth.HttpService;
 using OAuth.HttpService.Interfaces;
 using OAuth.HttpService.Models;
 using OAuth.Public.Models;
@@ -95,10 +98,9 @@ namespace OAuth.Application
         /// <returns>结果</returns>
         public async Task<BaseMessage> LoginAsync(MobileLoginForm form)
         {
+            // 默认账号/验证码校验
             var msg = new BaseMessage();
             var rootAcc = _config["MobileRootAccount:UserName"];
-
-            // 默认账号/验证码校验
             if (form.PhoneNumber == rootAcc && !rootAcc.IsNullOrEmpty())
             {
                 var code = _config["MobileRootAccount:Code"];
@@ -115,33 +117,7 @@ namespace OAuth.Application
                 await _cacheRepository.RemoveAsync(cacheKey);
             }
 
-            var user = await _manager.LoginAsync(form);
-            var tokenResponse = await _identityHttpService.LoginAsync(new IdentityServer4Request()
-            {
-                ClientId = form.Client.Id,
-                ClientSecret = form.Client.Secret,
-                GrantType = "password",
-                Username = user.UserName,
-                Password = user.Password
-            });
-
-            if (!tokenResponse.AccessToken.IsNullOrEmpty())
-            {
-                msg.Status = true;
-                msg.Data = tokenResponse;
-            }
-            else if (!tokenResponse.Error.IsNullOrEmpty())
-            {
-                msg.ErrType = BaseErrType.Fail;
-                msg.Status = false;
-                msg.Message = tokenResponse.Error;
-            }
-            else
-            {
-                msg = tokenResponse.Result as BaseMessage;
-            }
-
-            return msg;
+            return await _manager.LoginAsync(form);
         }
     }
 }

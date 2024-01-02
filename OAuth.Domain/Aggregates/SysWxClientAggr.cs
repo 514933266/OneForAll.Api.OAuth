@@ -8,18 +8,13 @@ using System.Threading.Tasks;
 namespace OAuth.Domain.Aggregates
 {
     /// <summary>
-    /// 系统用户
+    /// 微信客户端
     /// </summary>
-    public class SysLoginUserAggr : SysUser
+    public class SysWxClientAggr : SysWxClient
     {
         /// <summary>
-        /// 所属机构
+        /// 系统客户端
         /// </summary>
-        public SysTenant SysTenant { get; set; }
-
-        /// <summary>
-        /// 微信用户信息
-        /// </summary>
-        public SysWxUser SysWechatUser { get; set; }
+        public SysClient SysClient { get; set; }
     }
 }

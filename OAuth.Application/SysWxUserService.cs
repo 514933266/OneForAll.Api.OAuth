@@ -22,16 +22,16 @@ namespace OAuth.Application
     public class SysWxUserService : ISysWxUserService
     {
         private readonly IMapper _mapper;
-        private readonly ISysWechatUserRepository _repository;
-        private readonly ISysWxClientSettingRepository _settingRepository;
+        private readonly ISysWxUserRepository _repository;
+        private readonly ISysWxClientRepository _clientRepository;
         public SysWxUserService(
             IMapper mapper,
-            ISysWechatUserRepository repository,
-            ISysWxClientSettingRepository settingRepository)
+            ISysWxUserRepository repository,
+            ISysWxClientRepository clientRepository)
         {
             _mapper = mapper;
             _repository = repository;
-            _settingRepository = settingRepository;
+            _clientRepository = clientRepository;
         }
 
         /// <summary>
@@ -42,7 +42,7 @@ namespace OAuth.Application
         /// <returns></returns>
         public async Task<SysWxUserBaseDto> GetAsync(Guid userId, string clientId)
         {
-            var setting = await _settingRepository.GetAsync(w => w.ClientId == clientId);
+            var setting = await _clientRepository.GetByClientIdAsync(clientId);
             if (setting == null)
                 return new SysWxUserBaseDto();
 

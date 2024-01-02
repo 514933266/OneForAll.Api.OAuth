@@ -1,7 +1,6 @@
 ﻿using System.Reflection;
 using Autofac;
 using Autofac.Core;
-using AutoMapper;
 using OAuth.Domain.ValueObjects;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -18,29 +17,31 @@ using OneForAll.EFCore;
 using OAuth.HttpService.Models;
 using OAuth.Public.Models;
 using System;
-using OneForAll.Core.Utility;
 using Quartz.Impl;
 using Quartz.Spi;
 using Quartz;
 using OAuth.Host.Providers;
-using OAuth.Host.QuartzJobs;
-using OneForAll.Core.Upload;
+using OAuth.Host.Filters;
+using OAuth.Domain.Repositorys;
+using TencentCloud.Mna.V20210119.Models;
+using System.Linq;
 
 namespace OAuth.Host
 {
     public class Startup
     {
-        private readonly string AUTH_SERVER = "IdentityServer";
-        private readonly string CORS = "Cors";
+        private const string AUTH_SERVER = "IdentityServer";
+        private const string CORS = "Cors";
+        private const string AUTH = "Auth";
         private const string QUARTZ = "Quartz";
 
-        private readonly string BASE_HOST = "OAuth.Host";
-        private readonly string BASE_DOMAIN = "OAuth.Domain";
-        private readonly string BASE_APPLICATION = "OAuth.Application";
-        private readonly string BASE_REPOSITORY = "OAuth.Repository";
+        private const string BASE_HOST = "OAuth.Host";
+        private const string BASE_DOMAIN = "OAuth.Domain";
+        private const string BASE_APPLICATION = "OAuth.Application";
+        private const string BASE_REPOSITORY = "OAuth.Repository";
 
-        private readonly string HTTP_SERVICE_KEY = "HttpService";
-        private readonly string HTTP_SERVICE = "OAuth.HttpService";
+        private const string HTTP_SERVICE_KEY = "HttpService";
+        private const string HTTP_SERVICE = "OAuth.HttpService";
 
         public Startup(IConfiguration configuration)
         {
@@ -68,9 +69,9 @@ namespace OAuth.Host
             #endregion
 
             #region EFCore
-
-            services.AddDbContext<OneForAll_BaseContext>(options =>
-                     options.UseSqlServer(Configuration["ConnectionStrings:Default"]));
+            var connStr = Configuration["ConnectionStrings:Default"];
+            services.AddDbContext<OneForAllDbContext>(options =>
+                     options.UseSqlServer(connStr));
 
             #endregion
 
@@ -116,24 +117,36 @@ namespace OAuth.Host
             #endregion
 
             #region IdentityServer4
-            
+
             var authServerConfig = new OAuthProviderResource();
-            var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
-            var identityConnString = Configuration["ConnectionStrings:IdentityServer"];
-            Configuration.GetSection(AUTH_SERVER).Bind(authServerConfig);
-            services.AddIdentityServer()
-                .AddDeveloperSigningCredential()
-                .AddOperationalStore(options =>
+            var dbOptions = new DbContextOptionsBuilder<OneForAllDbContext>().UseSqlServer(connStr).Options;
+            using (var context = new OneForAllDbContext(dbOptions))
+            {
+                var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
+                var identityConnString = Configuration["ConnectionStrings:IdentityServer"];
+                var clients = context.SysClient.ToList();
+
+                if (clients.Any())
                 {
-                    options.ConfigureDbContext = builder => builder.UseSqlServer(identityConnString, sql => sql.MigrationsAssembly(migrationsAssembly));
-                    options.EnableTokenCleanup = true;
-                })
-                .AddInMemoryApiResources(OAuthProvider.GetApiResources(authServerConfig))
-                .AddInMemoryClients(OAuthProvider.GetClients(authServerConfig))
-                .AddInMemoryIdentityResources(OAuthProvider.GetIdentityResources(authServerConfig))
-                .AddInMemoryApiScopes(OAuthProvider.GetApiScopes(authServerConfig))
-                .AddResourceOwnerValidator<OAuthResourceOwnerPasswordValidator>()
-                .AddProfileService<OAuthProfileService>();
+                    // 如果表中有配置客户端，则覆盖json文件配置
+                    authServerConfig.Init(clients);
+                }
+
+                services.AddIdentityServer()
+                    .AddDeveloperSigningCredential()
+                    .AddOperationalStore(options =>
+                    {
+                        options.ConfigureDbContext = builder => builder.UseSqlServer(identityConnString, sql => sql.MigrationsAssembly(migrationsAssembly));
+                        options.EnableTokenCleanup = true;
+                    })
+                    .AddInMemoryApiResources(OAuthProvider.GetApiResources(authServerConfig))
+                    .AddInMemoryClients(OAuthProvider.GetClients(authServerConfig))
+                    .AddInMemoryIdentityResources(OAuthProvider.GetIdentityResources(authServerConfig))
+                    .AddInMemoryApiScopes(OAuthProvider.GetApiScopes(authServerConfig))
+                    .AddResourceOwnerValidator<OAuthResourceOwnerPasswordValidator>()
+                    .AddProfileService<OAuthProfileService>();
+            }
+            
             #endregion
 
             #region Redis
@@ -146,9 +159,10 @@ namespace OAuth.Host
 
             #region DI
 
-            var authConfig = new AppInfo();
-            Configuration.GetSection("App").Bind(authConfig);
+            var authConfig = new AuthConfig();
+            Configuration.GetSection(AUTH).Bind(authConfig);
             services.AddSingleton(authConfig);
+            services.AddSingleton(authServerConfig);
 
             #endregion
 
@@ -189,10 +203,10 @@ namespace OAuth.Host
                 .AsImplementedInterfaces();
 
             // 数据库上下文
-            builder.RegisterType(typeof(OneForAll_BaseContext)).Named<DbContext>("OneForAll_BaseContext");
+            builder.RegisterType(typeof(OneForAllDbContext)).Named<DbContext>("OneForAllDbContext");
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_REPOSITORY))
                .Where(t => t.Name.EndsWith("Repository"))
-               .WithParameter(ResolvedParameter.ForNamed<DbContext>("OneForAll_BaseContext"))
+               .WithParameter(ResolvedParameter.ForNamed<DbContext>("OneForAllDbContext"))
                .AsImplementedInterfaces();
 
             // 登录配置
@@ -202,10 +216,6 @@ namespace OAuth.Host
                     BanTime = Configuration["LoginSetting:BanTime"].TryInt(),
                     MaxPwdErrCount = Configuration["LoginSetting:MaxPwdErrCount"].TryInt()
                 }).SingleInstance();
-
-            var authConfig = new OAuthProviderResource();
-            Configuration.GetSection(AUTH_SERVER).Bind(authConfig);
-            builder.Register(s => authConfig).SingleInstance();
         }
 
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -216,11 +226,9 @@ namespace OAuth.Host
             }
 
             app.UseCors(CORS);
-
             app.UseRouting();
-
             app.UseIdentityServer();
-
+            app.UseMiddleware<GlobalExceptionMiddleware>();
             app.UseEndpoints(endpoints =>
             {
                 endpoints.MapControllers();

@@ -6,6 +6,9 @@ using OAuth.HttpService.Interfaces;
 using System;
 using IdentityServer4.Extensions;
 using System.Linq;
+using OAuth.Application.Dtos;
+using OAuth.HttpService.Models;
+using OneForAll.EFCore;
 
 namespace OAuth.Host.QuartzJobs
 {
@@ -14,43 +17,59 @@ namespace OAuth.Host.QuartzJobs
     /// </summary>
     public class RefreshWxmpAccessTokenJob : IJob
     {
-        private readonly AppInfo _config;
+        private readonly AuthConfig _config;
         private readonly IWxHttpService _wxHttpService;
         private readonly IScheduleJobHttpService _jobHttpService;
-        private readonly ISysWxClientSettingRepository _wxSettingRepository;
+        private readonly ISysWxClientRepository _wxClientRepository;
+        private readonly ISysGlobalExceptionLogHttpService _logHttpService;
         public RefreshWxmpAccessTokenJob(
-            AppInfo config,
+            AuthConfig config,
             IWxHttpService wxHttpService,
             IScheduleJobHttpService jobHttpService,
-            ISysWxClientSettingRepository wxSettingRepository)
+            ISysWxClientRepository wxClientRepository,
+            ISysGlobalExceptionLogHttpService logHttpService)
         {
             _config = config;
             _wxHttpService = wxHttpService;
             _jobHttpService = jobHttpService;
-            _wxSettingRepository = wxSettingRepository;
+            _wxClientRepository = wxClientRepository;
+            _logHttpService = logHttpService;
         }
 
         public async Task Execute(IJobExecutionContext context)
         {
-            var num = 0;
-            var clients = await _wxSettingRepository.GetListAsync();
-            foreach (var client in clients)
+            try
             {
-                var isInvalid = client.AccessTokenCreateTime == null ? true : client.AccessTokenCreateTime.Value.AddSeconds(client.AccessTokenExpiresIn) <= DateTime.Now;
-                if (isInvalid)
+                var num = 0;
+                var clients = await _wxClientRepository.GetListAsync();
+                foreach (var client in clients)
                 {
-                    var response = await _wxHttpService.GetAccessTokenAsync(client.AppId, client.AppSecret);
-                    if (!response.AccessToken.IsNullOrEmpty())
+                    var isInvalid = client.AccessTokenCreateTime == null ? true : client.AccessTokenCreateTime.Value.AddSeconds(client.AccessTokenExpiresIn) <= DateTime.Now;
+                    if (isInvalid)
                     {
-                        num++;
-                        client.AccessToken = response.AccessToken;
-                        client.AccessTokenExpiresIn = response.ExpiresIn;
-                        client.AccessTokenCreateTime = DateTime.Now;
+                        var response = await _wxHttpService.GetAccessTokenAsync(client.AppId, client.AppSecret);
+                        if (!response.AccessToken.IsNullOrEmpty())
+                        {
+                            num++;
+                            client.AccessToken = response.AccessToken;
+                            client.AccessTokenExpiresIn = response.ExpiresIn;
+                            client.AccessTokenCreateTime = DateTime.Now;
+                        }
                     }
                 }
+                num = await _wxClientRepository.SaveChangesAsync();
+                await _jobHttpService.LogAsync(_config.ClientCode, typeof(RefreshWxmpAccessTokenJob).Name, $"巡检刷新微信客户端AccessToken任务执行完成，共有{clients.Count()}个客户端,更新{num}个");
             }
-            num = await _wxSettingRepository.SaveChangesAsync();
-            await _jobHttpService.LogAsync(_config.ClientCode, typeof(RefreshWxmpAccessTokenJob).Name, $"巡检刷新微信客户端AccessToken任务执行完成，共有{clients.Count()}个客户端,更新{num}个");
+            catch (Exception ex)
+            {
+                await _logHttpService.AddAsync(new SysGlobalExceptionLogRequest
+                {
+                    MoudleName = _config.ClientName,
+                    MoudleCode = _config.ClientCode,
+                    Name = ex.Message,
+                    Content = ex.InnerException == null ? ex.StackTrace : ex.InnerException.StackTrace
+                });
+            }
         }
     }
 }

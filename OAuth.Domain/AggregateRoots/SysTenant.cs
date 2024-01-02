@@ -12,11 +12,6 @@ namespace OAuth.Domain.AggregateRoots
     /// </summary>
     public partial class SysTenant : AggregateRoot<Guid>, ICreateTime
     {
-        public SysTenant()
-        {
-            SysUsers = new HashSet<SysUser>();
-        }
-
         /// <summary>
         /// 名称
         /// </summary>
@@ -77,7 +72,5 @@ namespace OAuth.Domain.AggregateRoots
         [Required]
         [Column(TypeName = "datetime")]
         public DateTime CreateTime { get; set; }
-
-        public virtual ICollection<SysUser> SysUsers { get; set; }
     }
 }

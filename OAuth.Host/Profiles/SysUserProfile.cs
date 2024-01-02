@@ -19,7 +19,7 @@ namespace OAuth.Host.Profiles
                 .ForMember(t => t.TenantId, a => a.MapFrom(e => e.SysTenantId))
                 .ForMember(t => t.IsDefaultTenant, a => a.MapFrom(e => e.IsDefault));
 
-            CreateMap<WxmpLogin2SessionResponse, SysWechatUser>();
+            CreateMap<WxmpLogin2SessionResponse, SysWxUser>();
             
         }
     }
