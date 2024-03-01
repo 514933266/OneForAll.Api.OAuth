@@ -2,6 +2,7 @@
 using OAuth.Host.Models;
 using OAuth.Public.Models;
 using OneForAll.Core.Extension;
+using OneForAll.Core.OAuth;
 using System.Collections.Generic;
 using static IdentityServer4.IdentityServerConstants;
 
@@ -80,7 +81,7 @@ namespace OAuth.Host.Models
                 {
                     Name = e,
                     DisplayName = e,
-                    UserClaims = new List<string>() { UserClaimType.Policy },
+                    UserClaims = new List<string>() { "Policy" },
                 };
                 scopes.Add(scope);
             });

@@ -49,7 +49,7 @@ namespace OAuth.HttpService
                 var result = await client.PostAsync(client.BaseAddress, new TxCloudSmsRequest()
                 {
                     MoudleCode = code,
-                    MoudleName = "登录",
+                    MoudleName = "登录授权",
                     SignName = signName,
                     Content = content,
                     TemplateId = templateId,

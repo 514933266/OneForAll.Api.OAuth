@@ -20,6 +20,7 @@ using Microsoft.Extensions.Configuration;
 using OAuth.Domain.Repositorys;
 using OAuth.Domain.Enums;
 using TencentCloud.Mna.V20210119.Models;
+using OneForAll.Core.OAuth;
 
 namespace OAuth.Host.Providers
 {
@@ -71,9 +72,7 @@ namespace OAuth.Host.Providers
             if (client == null)
                 throw new Exception("未配置系统客户端信息");
 
-            result.User.ApiRole = client.Role;
-
-            var claims = SetAdminClaims(result.User);
+            var claims = SetAdminClaims(result.User, client.Role);
 
             #region 微信客户端信息
 
@@ -129,16 +128,15 @@ namespace OAuth.Host.Providers
             });
         }
 
-        private List<Claim> SetAdminClaims(LoginUser user)
+        private List<Claim> SetAdminClaims(LoginUser user, string role)
         {
             return user == null ? new List<Claim>() : new List<Claim> {
                     new Claim(UserClaimType.USERNAME, user.UserName),
                     new Claim(UserClaimType.USER_NICKNAME, user.Name),
                     new Claim(UserClaimType.USER_ID, user.Id.ToString()),
-                    new Claim(UserClaimType.TENANT_ID, user.TenantId.ToString()),
-                    new Claim(UserClaimType.PERSON_ID, user.PersonId.ToString()),
+                    new Claim(UserClaimType.TENANT_ID, user.SysTenantId.ToString()),
                     new Claim(UserClaimType.IS_DEFAULT, user.IsDefault.ToString()),
-                    new Claim(UserClaimType.ROLE, user.ApiRole)
+                    new Claim(UserClaimType.ROLE, role)
             };
         }
 

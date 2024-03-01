@@ -26,9 +26,14 @@ namespace OAuth.HttpService.Models
         public string WxmpLogin2Session { get; set; } = "WxmpLogin2Session";
 
         /// <summary>
-        /// 微信小程序-接口调用凭据
+        /// 微信小程序-Access_token
         /// </summary>
         public string WxmpAccessToken { get; set; } = "WxmpAccessToken";
+
+        /// <summary>
+        /// 微信小程序-稳定Access_token
+        /// </summary>
+        public string WxStableAccessToken { get; set; } = "WxStableAccessToken";
 
         /// <summary>
         /// 微信小程序-用户手机号
@@ -54,5 +59,10 @@ namespace OAuth.HttpService.Models
         /// 全局异常日志
         /// </summary>
         public string SysGlobalExceptionLog { get; set; } = "SysGlobalExceptionLog";
+
+        /// <summary>
+        /// Api日志
+        /// </summary>
+        public string SysApiLog { get; set; } = "SysApiLog";
     }
 }

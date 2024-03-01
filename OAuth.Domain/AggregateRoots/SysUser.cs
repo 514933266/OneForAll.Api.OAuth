@@ -98,5 +98,12 @@ namespace OAuth.Domain.AggregateRoots
         /// </summary>
         [Required]
         public byte PwdErrCount { get; set; }
+
+        /// <summary>
+        /// 创建时间
+        /// </summary>
+        [Required]
+        [Column(TypeName = "datetime")]
+        public DateTime CreateTime { get; set; } = DateTime.Now;
     }
 }

@@ -228,6 +228,7 @@ namespace OAuth.Host
             app.UseCors(CORS);
             app.UseRouting();
             app.UseIdentityServer();
+            app.UseMiddleware<ApiLogMiddleware>();
             app.UseMiddleware<GlobalExceptionMiddleware>();
             app.UseEndpoints(endpoints =>
             {

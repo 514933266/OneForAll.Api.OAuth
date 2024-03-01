@@ -14,6 +14,7 @@ using OAuth.Repository;
 using OAuth.Public.Models;
 using OAuth.Domain.Aggregates;
 using OAuth.Domain.Enums;
+using OneForAll.Core.OAuth;
 
 namespace OAuth.Domain
 {

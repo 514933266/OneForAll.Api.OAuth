@@ -44,16 +44,21 @@ namespace OAuth.Host.QuartzJobs
                 var clients = await _wxClientRepository.GetListAsync();
                 foreach (var client in clients)
                 {
-                    var isInvalid = client.AccessTokenCreateTime == null ? true : client.AccessTokenCreateTime.Value.AddSeconds(client.AccessTokenExpiresIn) <= DateTime.Now;
+                    var timeNow = DateTime.Now.AddMinutes(30);
+                    var isInvalid = client.AccessTokenCreateTime == null ? true : client.AccessTokenCreateTime.Value.AddSeconds(client.AccessTokenExpiresIn) < timeNow;
                     if (isInvalid)
                     {
-                        var response = await _wxHttpService.GetAccessTokenAsync(client.AppId, client.AppSecret);
-                        if (!response.AccessToken.IsNullOrEmpty())
+                        var response = await _wxHttpService.GetStableAccessTokenAsync(client.AppId, client.AppSecret);
+                       if (!response.AccessToken.IsNullOrEmpty())
                         {
-                            num++;
                             client.AccessToken = response.AccessToken;
                             client.AccessTokenExpiresIn = response.ExpiresIn;
                             client.AccessTokenCreateTime = DateTime.Now;
+                            await _jobHttpService.LogAsync(_config.ClientCode, typeof(RefreshWxmpAccessTokenJob).Name, $"刷新微信客户端access_token成功，AppId:{client.AppId}，Token:{client.AccessToken}");
+                        }
+                        else
+                        {
+                            await _jobHttpService.LogAsync(_config.ClientCode, typeof(RefreshWxmpAccessTokenJob).Name, $"刷新微信客户端access_token失败，AppId:{client.AppId}");
                         }
                     }
                 }

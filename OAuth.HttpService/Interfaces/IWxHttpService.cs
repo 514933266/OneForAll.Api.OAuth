@@ -19,5 +19,13 @@ namespace OAuth.HttpService.Interfaces
         /// <param name="appSecret">App密钥</param>
         /// <returns>登录结果</returns>
         Task<WxAccessTokenResponse> GetAccessTokenAsync(string appId, string appSecret);
+
+        /// <summary>
+        /// 获取稳定版AccessToken
+        /// </summary>
+        /// <param name="appId">AppId</param>
+        /// <param name="appSecret">App密钥</param>
+        /// <returns>登录结果</returns>
+        Task<WxAccessTokenResponse> GetStableAccessTokenAsync(string appId, string appSecret);
     }
 }

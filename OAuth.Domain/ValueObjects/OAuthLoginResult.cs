@@ -2,6 +2,7 @@
 using OAuth.Domain.Models;
 using OAuth.Public.Models;
 using OneForAll.Core;
+using OneForAll.Core.OAuth;
 
 namespace OAuth.Domain.ValueObjects
 {

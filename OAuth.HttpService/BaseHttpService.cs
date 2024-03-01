@@ -4,9 +4,10 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using System.Collections.Generic;
-using Microsoft.AspNetCore.Http;
 using OneForAll.Core.Extension;
 using OAuth.Public.Models;
+using OneForAll.Core.OAuth;
+using Microsoft.AspNetCore.Http;
 
 namespace OAuth.HttpService
 {
@@ -16,13 +17,13 @@ namespace OAuth.HttpService
     public class BaseHttpService
     {
         private readonly string AUTH_KEY = "Authorization";
-        protected readonly IHttpContextAccessor _httpContext;
+        protected readonly IHttpContextAccessor _httpContextAccessor;
         protected readonly IHttpClientFactory _httpClientFactory;
         public BaseHttpService(
-            IHttpContextAccessor httpContext,
+            IHttpContextAccessor httpContextAccessor,
             IHttpClientFactory httpClientFactory)
         {
-            _httpContext = httpContext;
+            _httpContextAccessor = httpContextAccessor;
             _httpClientFactory = httpClientFactory;
         }
 
@@ -33,7 +34,7 @@ namespace OAuth.HttpService
         {
             get
             {
-                var context = _httpContext.HttpContext;
+                var context = _httpContextAccessor.HttpContext;
                 if (context != null)
                 {
                     return context.Request.Headers
@@ -44,78 +45,26 @@ namespace OAuth.HttpService
             }
         }
 
-        protected Guid UserId
-        {
-            get
-            {
-                var userId = _httpContext.HttpContext
-                .User
-                .Claims
-                .FirstOrDefault(e => e.Type == UserClaimType.USER_ID);
-
-                if (userId != null)
-                {
-                    return new Guid(userId.Value);
-                }
-                return Guid.Empty;
-            }
-        }
-
-        protected string UserName
-        {
-            get
-            {
-                var username = _httpContext.HttpContext
-                .User
-                .Claims
-                .FirstOrDefault(e => e.Type == UserClaimType.USERNAME);
-
-                if (username != null)
-                {
-                    return username.Value;
-                }
-                return null;
-            }
-        }
-
-        protected Guid TenantId
-        {
-            get
-            {
-                var tenantId = _httpContext.HttpContext
-                .User
-                .Claims
-                .FirstOrDefault(e => e.Type == UserClaimType.TENANT_ID);
-
-                if (tenantId != null)
-                {
-                    return new Guid(tenantId.Value);
-                }
-                return Guid.Empty;
-            }
-        }
-
         protected LoginUser LoginUser
         {
             get
             {
-                var name = _httpContext.HttpContext
-                .User
-                .Claims
-                .FirstOrDefault(e => e.Type == UserClaimType.USER_NICKNAME);
-
-                var role = _httpContext.HttpContext
-                .User
-                .Claims
-                .FirstOrDefault(e => e.Type == UserClaimType.ROLE);
-
-                return new LoginUser()
+                var claims = _httpContextAccessor.HttpContext?.User.Claims;
+                if (claims.Any())
                 {
-                    Id = UserId,
-                    Name = name?.Value,
-                    UserName = UserName,
-                    TenantId = TenantId
-                };
+                    return new LoginUser()
+                    {
+                        Name = claims.FirstOrDefault(e => e.Type == UserClaimType.USER_NICKNAME)?.Value ?? "",
+                        UserName = claims.FirstOrDefault(e => e.Type == UserClaimType.USERNAME)?.Value ?? "",
+                        WxAppId = claims.FirstOrDefault(e => e.Type == UserClaimType.WX_APPID)?.Value ?? "",
+                        WxOpenId = claims.FirstOrDefault(e => e.Type == UserClaimType.WX_OPENID)?.Value ?? "",
+                        WxUnionId = claims.FirstOrDefault(e => e.Type == UserClaimType.WX_UNIONID)?.Value ?? "",
+                        Id = claims.FirstOrDefault(e => e.Type == UserClaimType.USER_ID).Value.TryGuid(),
+                        SysTenantId = claims.FirstOrDefault(e => e.Type == UserClaimType.TENANT_ID).Value.TryGuid(),
+                        IsDefault = claims.FirstOrDefault(e => e.Type == UserClaimType.IS_DEFAULT).Value.TryBoolean()
+                    };
+                }
+                return new LoginUser();
             }
         }
 

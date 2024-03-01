@@ -34,23 +34,19 @@ namespace OAuth.Application
     {
         private readonly string CACHE_KEY = "LoginCode:{0}";
         private readonly IConfiguration _config;
-        private readonly IIdentityServer4HttpService _identityHttpService;
         private readonly IMobileLoginManager _manager;
-        private readonly ITxCloudSmsManager _smsManager;
         private readonly IDistributedCache _cacheRepository;
-
+        private readonly ITxCloudSmsHttpService _smsHttpService;
         public MobileLoginService(
             IConfiguration config,
-            IIdentityServer4HttpService identityHttpService,
             IMobileLoginManager manager,
-            ITxCloudSmsManager smsManager,
-            IDistributedCache cacheRepository)
+            IDistributedCache cacheRepository,
+            ITxCloudSmsHttpService smsHttpService)
         {
             _config = config;
             _manager = manager;
-            _smsManager = smsManager;
-            _identityHttpService = identityHttpService;
             _cacheRepository = cacheRepository;
+            _smsHttpService = smsHttpService;
         }
 
         /// <summary>
@@ -80,15 +76,8 @@ namespace OAuth.Application
                 throw new Exception("Redis服务未启动！");
             }
 
-            var sign = (code + DateTime.Now.ToString("yyyyMMddhhmm")).ToMd5();
-            return await _smsManager.SendAsync(new TxCloudSmsForm()
-            {
-                SignName = signName,
-                Content = code,
-                TemplateId = templateId,
-                PhoneNumber = phoneNumber,
-                Sign = sign
-            });
+            var msg = await _smsHttpService.SendAsync(signName, code, templateId, phoneNumber);
+            return msg.ErrType;
         }
 
         /// <summary>
