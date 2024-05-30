@@ -48,7 +48,7 @@ namespace OAuth.Host.Providers
         public async Task ValidateAsync(ResourceOwnerPasswordValidationContext context)
         {
             var ip = _accessor.HttpContext.Connection.RemoteIpAddress.ToString();
-            var user = new OAuthLogin()
+            var user = new OAuthLoginVo()
             {
                 UserName = context.UserName,
                 Password = context.Password,
@@ -65,14 +65,14 @@ namespace OAuth.Host.Providers
             }
         }
 
-        private async Task ValidateSuccess(ResourceOwnerPasswordValidationContext context, OAuthLoginResult result)
+        private async Task ValidateSuccess(ResourceOwnerPasswordValidationContext context, OAuthLoginResultVo result)
         {
             var msg = new BaseMessage();
             var client = await _clientRepository.GetAsync(w => w.ClientId == context.Request.Client.ClientId);
             if (client == null)
                 throw new Exception("未配置系统客户端信息");
 
-            var claims = SetAdminClaims(result.User, client.Role);
+            var claims = SetAdminClaims(result, client.Role);
 
             #region 微信客户端信息
 
@@ -99,7 +99,7 @@ namespace OAuth.Host.Providers
             });
         }
 
-        private async Task ValidateFail(ResourceOwnerPasswordValidationContext context, OAuthLoginResult result)
+        private async Task ValidateFail(ResourceOwnerPasswordValidationContext context, OAuthLoginResultVo result)
         {
             var msg = new BaseMessage().Fail();
             switch (result.ErrType)
@@ -128,14 +128,15 @@ namespace OAuth.Host.Providers
             });
         }
 
-        private List<Claim> SetAdminClaims(LoginUser user, string role)
+        private List<Claim> SetAdminClaims(OAuthLoginResultVo result, string role)
         {
-            return user == null ? new List<Claim>() : new List<Claim> {
-                    new Claim(UserClaimType.USERNAME, user.UserName),
-                    new Claim(UserClaimType.USER_NICKNAME, user.Name),
-                    new Claim(UserClaimType.USER_ID, user.Id.ToString()),
-                    new Claim(UserClaimType.TENANT_ID, user.SysTenantId.ToString()),
-                    new Claim(UserClaimType.IS_DEFAULT, user.IsDefault.ToString()),
+            return result.User == null ? new List<Claim>() : new List<Claim> {
+                    new Claim(UserClaimType.USERNAME, result.User.UserName),
+                    new Claim(UserClaimType.USER_NICKNAME, result.User.Name),
+                    new Claim(UserClaimType.USER_ID, result.User.Id.ToString()),
+                    new Claim(UserClaimType.TENANT_ID, result.User.SysTenantId.ToString()),
+                    new Claim(UserClaimType.IS_DEFAULT, result.User.IsDefault.ToString()),
+                    new Claim("IsRoot", (result.SysTenant?.IsDefault & result.User?.IsDefault).ToString()),
                     new Claim(UserClaimType.ROLE, role)
             };
         }

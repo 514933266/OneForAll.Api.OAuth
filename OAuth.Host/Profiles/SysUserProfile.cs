@@ -15,7 +15,7 @@ namespace OAuth.Host.Profiles
     {
         public SysUserProfile()
         {
-            CreateMap<SysUser, OAuthLogin>();
+            CreateMap<SysUser, OAuthLoginVo>();
             CreateMap<SysLoginUserAggr, LoginUser>();
 
             CreateMap<WxmpLogin2SessionResponse, SysWxUser>();

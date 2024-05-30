@@ -57,23 +57,19 @@ namespace OAuth.Domain
             if (!msg.Status) return msg;
 
             var client = msg.GetData<SysClient>();
-            var user = await _userRepository.GetAsync(w => w.UserName == form.PhoneNumber || w.Mobile == form.PhoneNumber);
-            if (user == null)
-            {
-                if (!client.AutoCreateAccount)
-                {
-                    msg.Data = null;
-                    return msg.Fail("账号不存在");
-                }
 
+            var user = await _userRepository.GetAsync(w => w.Mobile == form.PhoneNumber);
+            if (user == null && client.AutoCreateAccount)
                 user = await RegisterAsync(form.PhoneNumber);
-            }
 
             if (user != null)
             {
                 return await OAuth2LoginAsync(user, form.Client);
             }
-            return msg.Fail("登录失败");
+            else
+            {
+                return msg.Fail("账号不存在");
+            }
         }
 
         // 登陆前
@@ -85,7 +81,8 @@ namespace OAuth.Domain
                 return msg.Fail(BaseErrType.NotAllow, "客户端未授权");
             if (client.ClientSecret != form.Client.Secret)
                 return msg.Fail(BaseErrType.PasswordInvalid, "客户端密码错误");
-
+            if (!form.PhoneNumber.IsMobile())
+                return msg.Fail(BaseErrType.DataError, "手机号码格式错误");
             msg.Data = client;
             return msg.Success();
         }
@@ -95,10 +92,10 @@ namespace OAuth.Domain
         {
             var user = new SysUser()
             {
-                UserName = mobile,
+                UserName = TimeHelper.ToTimeStamp().ToString(),
                 Mobile = mobile,
                 Password = StringHelper.GetRandomString(20).ToMd5(),
-                Name = "手机用户",
+                Name = "手机用户m" + StringHelper.GetRandomString(5),
                 Status = SysUserStatusEnum.Normal
             };
 

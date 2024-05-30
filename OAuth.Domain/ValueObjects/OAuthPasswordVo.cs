@@ -5,7 +5,7 @@ using System.Text;
 
 namespace OAuth.Domain.ValueObjects
 {
-    public class OAuthPassword
+    public class OAuthPasswordVo
     {
         public string Old { get; set; }
 

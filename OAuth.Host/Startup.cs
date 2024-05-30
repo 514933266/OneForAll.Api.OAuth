@@ -22,8 +22,6 @@ using Quartz.Spi;
 using Quartz;
 using OAuth.Host.Providers;
 using OAuth.Host.Filters;
-using OAuth.Domain.Repositorys;
-using TencentCloud.Mna.V20210119.Models;
 using System.Linq;
 
 namespace OAuth.Host
@@ -64,41 +62,6 @@ namespace OAuth.Host
 
             #endregion
 
-            #region AutoMapper
-            services.AddAutoMapper(Assembly.Load(BASE_HOST));
-            #endregion
-
-            #region EFCore
-            var connStr = Configuration["ConnectionStrings:Default"];
-            services.AddDbContext<OneForAllDbContext>(options =>
-                     options.UseSqlServer(connStr));
-
-            #endregion
-
-            #region Quartz
-            var quartzConfig = new QuartzScheduleJobConfig();
-            Configuration.GetSection(QUARTZ).Bind(quartzConfig);
-            // 注册QuartzJobs目录下的定时任务
-            if (quartzConfig != null)
-            {
-                services.AddSingleton(quartzConfig);
-                services.AddSingleton<IJobFactory, ScheduleJobFactory>();
-                services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
-                services.AddHostedService<QuartzJobHostService>();
-                var jobNamespace = BASE_HOST.Append(".QuartzJobs");
-                quartzConfig.ScheduleJobs.ForEach(e =>
-                {
-                    var typeName = jobNamespace + "." + e.TypeName;
-                    var jobType = Assembly.Load(BASE_HOST).GetType(typeName);
-                    if (jobType != null)
-                    {
-                        e.JobType = jobType;
-                        services.AddSingleton(e.JobType);
-                    }
-                });
-            }
-            #endregion
-
             #region Http
 
             var serviceConfig = new HttpServiceConfig();
@@ -117,7 +80,7 @@ namespace OAuth.Host
             #endregion
 
             #region IdentityServer4
-
+            var connStr = Configuration["ConnectionStrings:Default"];
             var authServerConfig = new OAuthProviderResource();
             var dbOptions = new DbContextOptionsBuilder<OneForAllDbContext>().UseSqlServer(connStr).Options;
             using (var context = new OneForAllDbContext(dbOptions))
@@ -149,14 +112,6 @@ namespace OAuth.Host
             
             #endregion
 
-            #region Redis
-            services.AddStackExchangeRedisCache(options =>
-            {
-                options.Configuration = Configuration["Redis:ConnectionString"];
-                options.InstanceName = Configuration["Redis:InstanceName"];
-            });
-            #endregion
-
             #region DI
 
             var authConfig = new AuthConfig();
@@ -179,11 +134,47 @@ namespace OAuth.Host
                 options.SerializerSettings.ReferenceLoopHandling = ReferenceLoopHandling.Ignore;
             });
             #endregion
+
+            #region AutoMapper
+            services.AddAutoMapper(Assembly.Load(BASE_HOST));
+            #endregion
+
+            #region Redis
+            services.AddStackExchangeRedisCache(options =>
+            {
+                options.Configuration = Configuration["Redis:ConnectionString"];
+                options.InstanceName = Configuration["Redis:InstanceName"];
+            });
+            #endregion
+
+            #region Quartz
+            var quartzConfig = new QuartzScheduleJobConfig();
+            Configuration.GetSection(QUARTZ).Bind(quartzConfig);
+            // 注册QuartzJobs目录下的定时任务
+            if (quartzConfig != null)
+            {
+                services.AddSingleton(quartzConfig);
+                services.AddSingleton<IJobFactory, ScheduleJobFactory>();
+                services.AddSingleton<ISchedulerFactory, StdSchedulerFactory>();
+                services.AddHostedService<QuartzJobHostService>();
+                var jobNamespace = BASE_HOST.Append(".QuartzJobs");
+                quartzConfig.ScheduleJobs.ForEach(e =>
+                {
+                    var typeName = jobNamespace + "." + e.TypeName;
+                    var jobType = Assembly.Load(BASE_HOST).GetType(typeName);
+                    if (jobType != null)
+                    {
+                        e.JobType = jobType;
+                        services.AddSingleton(e.JobType);
+                    }
+                });
+            }
+            #endregion
         }
 
         public void ConfigureContainer(ContainerBuilder builder)
         {
-            // Http
+            // Http请求服务
             builder.RegisterAssemblyTypes(Assembly.Load(HTTP_SERVICE))
                .Where(t => t.Name.EndsWith("Service"))
                .AsImplementedInterfaces();
@@ -192,17 +183,23 @@ namespace OAuth.Host
             builder.RegisterGeneric(typeof(Repository<>))
                 .As(typeof(IEFCoreRepository<>));
 
-            // 应用服务
+            // 应用服务层
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_APPLICATION))
                 .Where(t => t.Name.EndsWith("Service"))
                 .AsImplementedInterfaces();
 
-            // 领域
+            // 领域层
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_DOMAIN))
                 .Where(t => t.Name.EndsWith("Manager"))
                 .AsImplementedInterfaces();
 
-            // 数据库上下文
+            // 仓储层
+            builder.Register(p =>
+            {
+                var optionBuilder = new DbContextOptionsBuilder<OneForAllDbContext>();
+                optionBuilder.UseSqlServer(Configuration["ConnectionStrings:Default"]);
+                return optionBuilder.Options;
+            }).AsSelf();
             builder.RegisterType(typeof(OneForAllDbContext)).Named<DbContext>("OneForAllDbContext");
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_REPOSITORY))
                .Where(t => t.Name.EndsWith("Repository"))
@@ -211,7 +208,7 @@ namespace OAuth.Host
 
             // 登录配置
             builder.Register(s =>
-                new OAuthLoginSetting()
+                new OAuthLoginSettingVo()
                 {
                     BanTime = Configuration["LoginSetting:BanTime"].TryInt(),
                     MaxPwdErrCount = Configuration["LoginSetting:MaxPwdErrCount"].TryInt()

@@ -11,6 +11,6 @@ namespace OAuth.Domain.Interfaces
         /// </summary>
         /// <param name="user">实体</param>
         /// <returns>结果</returns>
-        Task<OAuthLoginResult> LoginAsync(OAuthLogin user);
+        Task<OAuthLoginResultVo> LoginAsync(OAuthLoginVo user);
     }
 }

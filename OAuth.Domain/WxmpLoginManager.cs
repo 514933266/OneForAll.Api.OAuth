@@ -26,7 +26,6 @@ namespace OAuth.Domain
     {
         private readonly IMapper _mapper;
         private readonly IWxmpHttpService _httpService;
-        private readonly IWxHttpService _wxHttpService;
         private readonly IIdentityServer4HttpService _identityHttpService;
         private readonly ISysUserRepository _userRepository;
         private readonly ISysWxUserRepository _wxUserRepository;
@@ -35,7 +34,6 @@ namespace OAuth.Domain
         public WxmpLoginManager(
             IMapper mapper,
             IWxmpHttpService httpService,
-            IWxHttpService wxHttpService,
             IIdentityServer4HttpService identityHttpService,
             ISysUserRepository userRepository,
             ISysWxUserRepository wxUserRepository,
@@ -43,7 +41,6 @@ namespace OAuth.Domain
         {
             _mapper = mapper;
             _httpService = httpService;
-            _wxHttpService = wxHttpService;
             _identityHttpService = identityHttpService;
             _userRepository = userRepository;
             _wxUserRepository = wxUserRepository;
@@ -57,25 +54,20 @@ namespace OAuth.Domain
         /// <returns>登录结果</returns>
         public async Task<BaseMessage> LoginAsync(WxmpUserLoginForm form)
         {
-            var msg = await BeforeLoginAsync(form);
-            if (!msg.Status) return msg;
+            var msg = await VerifyClientAsync(form);
+            if (!msg.Status)
+                return msg;
 
             var client = msg.GetData<SysWxClientAggr>();
             msg = await WxLoginAsync(form, client);
-            if (!msg.Status) return msg;
+            if (!msg.Status)
+                return msg;
 
             var wxUser = msg.GetData<SysWxUser>();
-            var user = await _userRepository.GetAsync(w => w.UserName == wxUser.Mobile || w.UserName == wxUser.OpenId || w.Mobile == wxUser.Mobile);
-            if (user == null)
-            {
-                if (!client.SysClient.AutoCreateAccount)
-                {
-                    msg.Data = null;
-                    return msg.Fail("账号不存在");
-                }
+            var user = await _userRepository.GetAsync(w => w.Mobile == wxUser.Mobile);
 
+            if (user == null && client.SysClient.AutoCreateAccount)
                 user = await RegisterAsync(wxUser);
-            }
 
             if (user != null)
             {
@@ -83,17 +75,18 @@ namespace OAuth.Domain
                 if (data == null)
                 {
                     wxUser.SysUserId = user.Id;
-                    var effected = await _wxUserRepository.AddAsync(wxUser);
-                    if (effected < 1)
-                        return msg.Fail("微信账号关联失败,请稍后再试");
+                    await _wxUserRepository.AddAsync(wxUser);
                 }
                 return await OAuth2LoginAsync(user, form.Client);
             }
-            return msg.Fail("登录失败");
+            else
+            {
+                return msg.Fail("账号不存在");
+            }
         }
 
-        // 登陆前
-        private async Task<BaseMessage> BeforeLoginAsync(WxmpUserLoginForm form)
+        // 校验登录客户端
+        private async Task<BaseMessage> VerifyClientAsync(WxmpUserLoginForm form)
         {
             var msg = new BaseMessage();
             var client = await _clientRepository.GetByClientIdAsync(form.Client.Id);
@@ -111,10 +104,10 @@ namespace OAuth.Domain
         {
             var user = new SysUser()
             {
-                UserName = wxUser.Mobile,
+                UserName = TimeHelper.ToTimeStamp().ToString(),
                 Mobile = wxUser.Mobile,
+                Name = wxUser.NickName,
                 Password = StringHelper.GetRandomString(20).ToMd5(),
-                Name = "小程序手机用户",
                 Status = SysUserStatusEnum.Normal
             };
 
@@ -140,17 +133,18 @@ namespace OAuth.Domain
             var wxUser = _mapper.Map<WxmpLogin2SessionResponse, SysWxUser>(wxResponse);
             wxUser.AppId = client.AppId;
             wxUser.AvatarUrl = form.UserInfo?.AvatarUrl ?? "";
-            wxUser.NickName = form.UserInfo?.NickName ?? "微信用户";
+            wxUser.NickName = form.UserInfo?.NickName ?? "微信用户wxmp" + StringHelper.GetRandomString(5);
 
             if (!form.MobileCode.IsNullOrEmpty())
             {
                 // 微信手机号登录和快捷登录的code不同，只能用特殊的code换手机号
-                var tokenResp = await _wxHttpService.GetAccessTokenAsync(client.AppId, client.AppSecret);
-                var phone = await _httpService.GetPhoneNumberAsync(new WxmpPhoneNumberRequest() { Code = form.MobileCode }, tokenResp.AccessToken);
+                var phone = await _httpService.GetPhoneNumberAsync(new WxmpPhoneNumberRequest() { Code = form.MobileCode }, client.AccessToken);
+                if (phone.IsNullOrEmpty())
+                    return msg.Fail("微信手机号获取失败");
                 wxUser.Mobile = phone;
-                wxUser.AccessToken = tokenResp.AccessToken;
-                wxUser.AccessTokenCreateTime = DateTime.Now;
-                wxUser.AccessTokenExpiresIn = tokenResp.ExpiresIn;
+                wxUser.AccessToken = client.AccessToken;
+                wxUser.AccessTokenCreateTime = client.AccessTokenCreateTime;
+                wxUser.AccessTokenExpiresIn = client.AccessTokenExpiresIn;
 
                 msg.Data = wxUser;
                 return msg.Success();

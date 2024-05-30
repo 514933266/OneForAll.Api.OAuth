@@ -25,11 +25,11 @@ namespace OAuth.Domain
     {
         private readonly IMapper _mapper;
         private readonly ISysUserRepository _userRepository;
-        private readonly OAuthLoginSetting _setting;
+        private readonly OAuthLoginSettingVo _setting;
         public OAuthLoginManager(
             IMapper mapper,
             ISysUserRepository userRepository,
-            OAuthLoginSetting setting)
+            OAuthLoginSettingVo setting)
         {
             _mapper = mapper;
             _userRepository = userRepository;
@@ -41,9 +41,9 @@ namespace OAuth.Domain
         /// </summary>
         /// <param name="loginUser">登录信息</param>
         /// <returns>结果</returns>
-        public async Task<OAuthLoginResult> LoginAsync(OAuthLogin loginUser)
+        public async Task<OAuthLoginResultVo> LoginAsync(OAuthLoginVo loginUser)
         {
-            var result = new OAuthLoginResult() { ErrType = BaseErrType.Success };
+            var result = new OAuthLoginResultVo() { ErrType = BaseErrType.Success };
             var user = await _userRepository.GetWithTenantAsync(loginUser.UserName);
             ValidateUserAsync(user, result);
             if (result.ErrType == BaseErrType.Success)
@@ -67,7 +67,7 @@ namespace OAuth.Domain
         /// <param name="user">用户</param>
         /// <param name="result">传入结果</param>
         /// <returns>结果</returns>
-        private void ValidateUserAsync(SysLoginUserAggr user, OAuthLoginResult result)
+        private void ValidateUserAsync(SysLoginUserAggr user, OAuthLoginResultVo result)
         {
             if (user == null)
             {
@@ -83,6 +83,7 @@ namespace OAuth.Domain
             {
                 var loginUser = _mapper.Map<SysUser, LoginUser>(user);
                 result.User = loginUser;
+                result.SysTenant = user.SysTenant;
             }
             else if (user.Status >= SysUserStatusEnum.Frozen && user.Status < SysUserStatusEnum.Banned)
             {
@@ -106,7 +107,7 @@ namespace OAuth.Domain
         /// </summary>
         /// <param name="user">用户</param>
         /// <param name="result">传入结果</param>
-        private void ValidateBanTimeAsync(SysUser user, OAuthLoginResult result)
+        private void ValidateBanTimeAsync(SysUser user, OAuthLoginResultVo result)
         {
             result.LessBanTime = 0;
             var bantime = GetBanTotalMinutes(user);
@@ -145,7 +146,7 @@ namespace OAuth.Domain
         /// <param name="user">用户</param>
         /// <param name="loginUser">登录用户信息</param>
         /// <param name="result">结果</param>
-        private async Task ValidatePasswordAsync(SysUser user, OAuthLogin loginUser, OAuthLoginResult result)
+        private async Task ValidatePasswordAsync(SysUser user, OAuthLoginVo loginUser, OAuthLoginResultVo result)
         {
             var pass = user.Password.Equals(loginUser.Password);
             if (!pass)
@@ -155,7 +156,7 @@ namespace OAuth.Domain
                     user.PwdErrCount = 0;
                     user.UpdateTime = DateTime.Now;
                     user.Status = SysUserStatusEnum.Frozen;
-                    await _userRepository.UpdateAsync(user);
+                    await _userRepository.SaveChangesAsync();
 
                     result.LessPwdErrCount = 0;
                     result.ErrType = BaseErrType.Frozen;
@@ -164,7 +165,7 @@ namespace OAuth.Domain
                 else
                 {
                     user.PwdErrCount++;
-                    await _userRepository.UpdateAsync(user);
+                    await _userRepository.SaveChangesAsync();
                     result.LessPwdErrCount = _setting.MaxPwdErrCount - user.PwdErrCount;
                     result.ErrType = BaseErrType.PasswordInvalid;
                 }
@@ -184,7 +185,7 @@ namespace OAuth.Domain
             user.LastLoginTime = DateTime.Now;
             user.UpdateTime = DateTime.Now;
             user.Status = SysUserStatusEnum.Normal;
-            return await ResultAsync(() => _userRepository.UpdateAsync(user));
+            return await ResultAsync(() => _userRepository.SaveChangesAsync());
         }
     }
 }

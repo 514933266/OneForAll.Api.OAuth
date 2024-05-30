@@ -7,7 +7,7 @@ namespace OAuth.Domain.Models
     /// <summary>
     /// 登录提交信息
     /// </summary>
-    public class OAuthLogin
+    public class OAuthLoginVo
     {
         /// <summary>
         /// 用户名

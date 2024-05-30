@@ -37,6 +37,7 @@ namespace OAuth.Repository
                            Id = user.Id,
                            Name = user.Name,
                            UserName = user.UserName,
+                           Mobile = user.Mobile,
                            IconUrl = user.IconUrl,
                            IsDefault = user.IsDefault,
                            LastLoginIp = user.LastLoginIp,

@@ -9,6 +9,7 @@ using OAuth.Domain.Enums;
 using OAuth.Domain.Interfaces;
 using OAuth.Domain.Models;
 using OAuth.Domain.Repositorys;
+using OAuth.Domain.ValueObjects;
 using OAuth.HttpService;
 using OAuth.HttpService.Interfaces;
 using OAuth.HttpService.Models;
@@ -89,22 +90,30 @@ namespace OAuth.Application
         {
             // 默认账号/验证码校验
             var msg = new BaseMessage();
-            var rootAcc = _config["MobileRootAccount:UserName"];
-            if (form.PhoneNumber == rootAcc && !rootAcc.IsNullOrEmpty())
+
+            #region 测试账号登录
+
+            var rootConfig = new OAuthRootMobileLoginVo();
+            _config.GetSection("MobileRootAccount").Bind(rootConfig);
+            if (rootConfig != null)
             {
-                var code = _config["MobileRootAccount:Code"];
-                if (form.Code != code)
-                    return msg.Fail("验证码错误");
+                var item = rootConfig.Mobiles.FirstOrDefault(w => w == form.PhoneNumber);
+                if (item != null)
+                {
+                    if (form.Code != rootConfig.Code)
+                        return msg.Fail("验证码错误");
+
+                    return await _manager.LoginAsync(form);
+                }
             }
-            else
-            {
-                var cacheKey = CACHE_KEY.Fmt(form.PhoneNumber);
-                var code = await _cacheRepository.GetStringAsync(cacheKey);
-                if (code.IsNullOrEmpty() || form.Code != code)
-                    return msg.Fail("验证码错误");
-                // 删除验证码缓存
-                await _cacheRepository.RemoveAsync(cacheKey);
-            }
+            #endregion
+
+            var cacheKey = CACHE_KEY.Fmt(form.PhoneNumber);
+            var code = await _cacheRepository.GetStringAsync(cacheKey);
+            if (code.IsNullOrEmpty() || form.Code != code)
+                return msg.Fail("验证码错误");
+            // 删除验证码缓存
+            await _cacheRepository.RemoveAsync(cacheKey);
 
             return await _manager.LoginAsync(form);
         }

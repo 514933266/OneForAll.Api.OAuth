@@ -3,7 +3,7 @@
     /// <summary>
     /// 登录配置
     /// </summary>
-    public class OAuthLoginSetting
+    public class OAuthLoginSettingVo
     {
         /// <summary>
         /// 冻结时间

@@ -9,7 +9,7 @@ namespace OAuth.Domain.ValueObjects
     /// <summary>
     /// 登录结果
     /// </summary>
-    public class OAuthLoginResult
+    public class OAuthLoginResultVo
     {
         /// <summary>
         /// 错误类型
@@ -20,6 +20,11 @@ namespace OAuth.Domain.ValueObjects
         /// 用户信息
         /// </summary>
         public LoginUser User { get; set; }
+
+        /// <summary>
+        /// 租户信息
+        /// </summary>
+        public SysTenant SysTenant { get; set; }
 
         /// <summary>
         /// 剩余密码可错误次数
