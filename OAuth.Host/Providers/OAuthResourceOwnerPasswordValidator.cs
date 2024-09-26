@@ -12,35 +12,31 @@ using OAuth.Domain.ValueObjects;
 using OneForAll.Core.Extension;
 using OAuth.Host.Models;
 using OAuth.Domain.Interfaces;
-using System.Linq;
-using OAuth.Public.Models;
-using IdentityServer4.EntityFramework.Entities;
 using OAuth.Domain.AggregateRoots;
-using Microsoft.Extensions.Configuration;
 using OAuth.Domain.Repositorys;
 using OAuth.Domain.Enums;
-using TencentCloud.Mna.V20210119.Models;
 using OneForAll.Core.OAuth;
+using OAuth.Application.Interfaces;
 
 namespace OAuth.Host.Providers
 {
     public class OAuthResourceOwnerPasswordValidator : IResourceOwnerPasswordValidator
     {
-        private readonly IOAuthLoginManager _loginManager;
+        private readonly IOAuthLoginService _loginService;
         private readonly ISysWxUserManager _wxUserManager;
         private readonly IHttpContextAccessor _accessor;
         private readonly ISysClientRepository _clientRepository;
         private readonly ISysWxClientRepository _wxClientRepository;
         public OAuthResourceOwnerPasswordValidator(
             ISysWxUserManager wxUserManager,
-            IOAuthLoginManager loginManager,
+            IOAuthLoginService loginService,
             IHttpContextAccessor accessor,
             ISysClientRepository clientRepository,
             ISysWxClientRepository wxClientRepository)
         {
             _accessor = accessor;
             _wxUserManager = wxUserManager;
-            _loginManager = loginManager;
+            _loginService = loginService;
             _clientRepository = clientRepository;
             _wxClientRepository = wxClientRepository;
         }
@@ -52,9 +48,11 @@ namespace OAuth.Host.Providers
             {
                 UserName = context.UserName,
                 Password = context.Password,
-                IPAddress = ip
+                IPAddress = ip,
+                CaptchaKey = context.Request.Raw.Get("captcha_key"),
+                Captcha = context.Request.Raw.Get("captcha")
             };
-            var result = await _loginManager.LoginAsync(user);
+            var result = await _loginService.LoginAsync(user);
             if (result.ErrType == BaseErrType.Success)
             {
                 await ValidateSuccess(context, result);
@@ -110,8 +108,11 @@ namespace OAuth.Host.Providers
                 case BaseErrType.DataNotFound: msg.Message = "账号不存在"; break;
                 case BaseErrType.DataError: msg.Message = "账号异常，请联系管理员"; break;
                 case BaseErrType.PermissionNotEnough: msg.Message = "账号权限不足"; break;
+                case BaseErrType.AuthCodeInvalid: msg.Message = "验证码错误"; break;
                 case BaseErrType.PasswordInvalid: msg.Message = "密码输入错误，还可尝试{0}次".Fmt(result.LessPwdErrCount); break;
-                case BaseErrType.Frozen: msg.Message = "账号已被冻结，请{0}分钟后再尝试登陆".Fmt(Math.Round(result.LessBanTime)); break;
+                case BaseErrType.Frozen:
+                    msg.Data = new { IsRequiredCaptcha = result.IsRequiredCaptcha };
+                    msg.Message = "账号已被冻结，请{0}分钟后再尝试登陆".Fmt(Math.Round(result.LessBanTime)); break;
             }
             context.Result = GetResult(TokenRequestErrors.InvalidClient, msg);
         }

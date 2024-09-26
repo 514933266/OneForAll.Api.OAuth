@@ -1,12 +1,8 @@
-﻿using AutoMapper;
-using Microsoft.Extensions.Caching.Distributed;
-using OAuth.Domain.AggregateRoots;
+﻿using OAuth.Domain.AggregateRoots;
 using OAuth.Domain.Enums;
 using OAuth.Domain.Interfaces;
 using OAuth.Domain.Models;
 using OAuth.Domain.Repositorys;
-using OAuth.HttpService.Models;
-using OAuth.HttpService;
 using OneForAll.Core;
 using OneForAll.Core.DDD;
 using OneForAll.Core.Extension;
@@ -22,8 +18,7 @@ using System.Text;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Configuration;
 using SysLog.HttpService.Interfaces;
-using OAuth.HttpService.Interfaces;
-using OAuth.Domain.Aggregates;
+using OAuth.Domain.ValueObjects;
 
 namespace OAuth.Domain
 {
@@ -32,15 +27,18 @@ namespace OAuth.Domain
     /// </summary>
     public class MobileLoginManager : BaseManager, IMobileLoginManager
     {
+        private readonly OAuthLoginSettingVo _setting;
         private readonly IIdentityServer4HttpService _identityHttpService;
         private readonly ISysUserRepository _userRepository;
         private readonly ISysClientRepository _clientRepository;
 
         public MobileLoginManager(
+            OAuthLoginSettingVo setting,
             IIdentityServer4HttpService identityHttpService,
             ISysUserRepository userRepository,
             ISysClientRepository clientRepository)
         {
+            _setting = setting;
             _identityHttpService = identityHttpService;
             _userRepository = userRepository;
             _clientRepository = clientRepository;
@@ -90,12 +88,15 @@ namespace OAuth.Domain
         // 注册账号
         private async Task<SysUser> RegisterAsync(string mobile)
         {
+            // 如果没有该手机号的账号，则使用手机号作为用户名
+            var tt = TimeHelper.ToTimeStamp().ToString();
+            var useMobile = (await _userRepository.CountAsync(w => w.UserName == mobile)) == 0;
             var user = new SysUser()
             {
-                UserName = TimeHelper.ToTimeStamp().ToString(),
+                UserName = useMobile ? mobile : "m".Append(tt),
                 Mobile = mobile,
                 Password = StringHelper.GetRandomString(20).ToMd5(),
-                Name = "手机用户m" + StringHelper.GetRandomString(5),
+                Name = "手机用户".Append(tt),
                 Status = SysUserStatusEnum.Normal
             };
 
@@ -120,7 +121,8 @@ namespace OAuth.Domain
                 ClientSecret = client.Secret,
                 GrantType = "password",
                 Username = user.UserName,
-                Password = user.Password
+                Password = user.Password,
+                CaptchaKey = _setting.IgnoreCaptchaKey
             });
 
             if (!tokenResponse.AccessToken.IsNullOrEmpty())

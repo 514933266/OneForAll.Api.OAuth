@@ -24,5 +24,10 @@
         /// 客户端代码
         /// </summary>
         public string ClientCode { get; set; }
+
+        /// <summary>
+        /// 授权验证的域名，如果不配置则默认使用请求的Host，用于局域网验证
+        /// </summary>
+        public string Issuer { get; set; }
     }
 }

@@ -6,10 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="AutoMapper" Version="12.0.1" />
-    <PackageReference Include="OneForAll.Core" Version="2.0.0-net8" />
+    <PackageReference Include="AutoMapper" Version="13.0.1" />
+    <PackageReference Include="OneForAll.Core" Version="2.0.2" />
     <PackageReference Include="OneForAll.EFCore" Version="2.0.1" />
-    <PackageReference Include="TencentCloudSDK" Version="3.0.928" />
   </ItemGroup>
 
   <ItemGroup>

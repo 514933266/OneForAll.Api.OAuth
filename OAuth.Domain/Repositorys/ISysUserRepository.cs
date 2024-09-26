@@ -16,6 +16,13 @@ namespace OAuth.Domain.Repositorys
         /// </summary>
         /// <param name="username">用户名</param>
         /// <returns>系统用户</returns>
+        Task<SysUser> GetAsync(string username);
+
+        /// <summary>
+        /// 查询用户信息
+        /// </summary>
+        /// <param name="username">用户名</param>
+        /// <returns>系统用户</returns>
         Task<SysLoginUserAggr> GetWithTenantAsync(string username);
 
     }

@@ -94,7 +94,7 @@ namespace OAuth.Host.Filters
             var methods = new string[] { "POST", "PUT", "PATCH", "DELETED" };
             if (methods.Contains(method))
             {
-                if (context.Request.HasJsonContentType())
+                if (!(context.Request.ContentType.StartsWith("multipart/form-data") && context.Request.HasFormContentType))
                 {
                     context.Request.EnableBuffering();
 

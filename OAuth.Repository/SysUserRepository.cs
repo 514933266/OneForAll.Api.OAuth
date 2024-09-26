@@ -25,6 +25,16 @@ namespace OAuth.Repository
         /// </summary>
         /// <param name="username">用户名</param>
         /// <returns>系统用户</returns>
+        public async Task<SysUser> GetAsync(string username)
+        {
+            return await DbSet.FirstOrDefaultAsync(w => w.UserName == username);
+        }
+
+        /// <summary>
+        /// 查询用户信息
+        /// </summary>
+        /// <param name="username">用户名</param>
+        /// <returns>系统用户</returns>
         public async Task<SysLoginUserAggr> GetWithTenantAsync(string username)
         {
             var tenantDbSet = Context.Set<SysTenant>();

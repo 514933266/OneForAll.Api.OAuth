@@ -23,6 +23,7 @@ using Quartz;
 using OAuth.Host.Providers;
 using OAuth.Host.Filters;
 using System.Linq;
+using IdentityServer4.Configuration;
 
 namespace OAuth.Host
 {
@@ -79,11 +80,21 @@ namespace OAuth.Host
 
             #endregion
 
+            #region DI
+
+            var authConfig = new AuthConfig();
+            Configuration.GetSection(AUTH).Bind(authConfig);
+            services.AddSingleton(authConfig);
+
+            #endregion
+
             #region IdentityServer4
+
             var connStr = Configuration["ConnectionStrings:Default"];
             var authServerConfig = new OAuthProviderResource();
-            var dbOptions = new DbContextOptionsBuilder<OneForAllDbContext>().UseSqlServer(connStr).Options;
-            using (var context = new OneForAllDbContext(dbOptions))
+            var dbOptions = new DbContextOptionsBuilder<SysDbContext>().UseSqlServer(connStr).Options;
+            services.AddSingleton(authServerConfig);
+            using (var context = new SysDbContext(dbOptions))
             {
                 var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
                 var identityConnString = Configuration["ConnectionStrings:IdentityServer"];
@@ -95,29 +106,24 @@ namespace OAuth.Host
                     authServerConfig.Init(clients);
                 }
 
-                services.AddIdentityServer()
-                    .AddDeveloperSigningCredential()
-                    .AddOperationalStore(options =>
-                    {
-                        options.ConfigureDbContext = builder => builder.UseSqlServer(identityConnString, sql => sql.MigrationsAssembly(migrationsAssembly));
-                        options.EnableTokenCleanup = true;
-                    })
-                    .AddInMemoryApiResources(OAuthProvider.GetApiResources(authServerConfig))
-                    .AddInMemoryClients(OAuthProvider.GetClients(authServerConfig))
-                    .AddInMemoryIdentityResources(OAuthProvider.GetIdentityResources(authServerConfig))
-                    .AddInMemoryApiScopes(OAuthProvider.GetApiScopes(authServerConfig))
-                    .AddResourceOwnerValidator<OAuthResourceOwnerPasswordValidator>()
-                    .AddProfileService<OAuthProfileService>();
+                services.AddIdentityServer(option =>
+                {
+                    option.IssuerUri = authConfig.Issuer;
+                })
+                .AddDeveloperSigningCredential()
+                .AddOperationalStore(options =>
+                {
+                    options.ConfigureDbContext = builder => builder.UseSqlServer(identityConnString, sql => sql.MigrationsAssembly(migrationsAssembly));
+                    // 自动清理Token
+                    options.EnableTokenCleanup = true;
+                })
+                .AddInMemoryApiResources(OAuthProvider.GetApiResources(authServerConfig))
+                .AddInMemoryClients(OAuthProvider.GetClients(authServerConfig))
+                .AddInMemoryIdentityResources(OAuthProvider.GetIdentityResources(authServerConfig))
+                .AddInMemoryApiScopes(OAuthProvider.GetApiScopes(authServerConfig))
+                .AddResourceOwnerValidator<OAuthResourceOwnerPasswordValidator>()
+                .AddProfileService<OAuthProfileService>();
             }
-            
-            #endregion
-
-            #region DI
-
-            var authConfig = new AuthConfig();
-            Configuration.GetSection(AUTH).Bind(authConfig);
-            services.AddSingleton(authConfig);
-            services.AddSingleton(authServerConfig);
 
             #endregion
 
@@ -196,14 +202,14 @@ namespace OAuth.Host
             // 仓储层
             builder.Register(p =>
             {
-                var optionBuilder = new DbContextOptionsBuilder<OneForAllDbContext>();
+                var optionBuilder = new DbContextOptionsBuilder<SysDbContext>();
                 optionBuilder.UseSqlServer(Configuration["ConnectionStrings:Default"]);
                 return optionBuilder.Options;
             }).AsSelf();
-            builder.RegisterType(typeof(OneForAllDbContext)).Named<DbContext>("OneForAllDbContext");
+            builder.RegisterType(typeof(SysDbContext)).Named<DbContext>("SysDbContext");
             builder.RegisterAssemblyTypes(Assembly.Load(BASE_REPOSITORY))
                .Where(t => t.Name.EndsWith("Repository"))
-               .WithParameter(ResolvedParameter.ForNamed<DbContext>("OneForAllDbContext"))
+               .WithParameter(ResolvedParameter.ForNamed<DbContext>("SysDbContext"))
                .AsImplementedInterfaces();
 
             // 登录配置
@@ -211,7 +217,9 @@ namespace OAuth.Host
                 new OAuthLoginSettingVo()
                 {
                     BanTime = Configuration["LoginSetting:BanTime"].TryInt(),
-                    MaxPwdErrCount = Configuration["LoginSetting:MaxPwdErrCount"].TryInt()
+                    MaxPwdErrCount = Configuration["LoginSetting:MaxPwdErrCount"].TryInt(),
+                    IsCaptchaEnabled = Configuration["LoginSetting:IsCaptchaEnabled"].TryBoolean(),
+                    IgnoreCaptchaKey = Configuration["LoginSetting:IgnoreCaptchaKey"],
                 }).SingleInstance();
         }
 

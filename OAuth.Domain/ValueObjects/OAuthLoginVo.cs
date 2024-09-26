@@ -23,5 +23,15 @@ namespace OAuth.Domain.Models
         /// IP地址
         /// </summary>
         public string IPAddress { get; set; }
+
+        /// <summary>
+        /// 验证码
+        /// </summary>
+        public string Captcha { get; set; }
+
+        /// <summary>
+        /// 验证码秘钥
+        /// </summary>
+        public string CaptchaKey { get; set; }
     }
 }

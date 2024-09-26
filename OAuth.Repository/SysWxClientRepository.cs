@@ -1,7 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using OAuth.Domain.AggregateRoots;
 using OAuth.Domain.Aggregates;
-using OAuth.Domain.Enums;
 using OAuth.Domain.Repositorys;
 using OneForAll.EFCore;
 using System;
@@ -9,7 +8,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using TencentCloud.Monitor.V20180724.Models;
 
 namespace OAuth.Repository
 {

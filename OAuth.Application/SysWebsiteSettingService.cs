@@ -31,7 +31,7 @@ namespace OAuth.Application
         /// <returns>实体</returns>
         public async Task<SysWebsiteSettingDto> GetAsync(string host)
         {
-            var result = new SysWebsiteSettingDto() { Name = "未注册授权域名" };
+            var result = new SysWebsiteSettingDto() { Name = "未注册授权客户端" };
             var data = await _repository.GetByHostWithContactAsync(host);
             if (data == null)
                 return result;

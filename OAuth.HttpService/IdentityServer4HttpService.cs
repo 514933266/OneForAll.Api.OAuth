@@ -46,6 +46,7 @@ namespace SysLog.HttpService
                 body.Add(new KeyValuePair<string, string>("client_secret", request.ClientSecret));
                 body.Add(new KeyValuePair<string, string>("username", request.Username));
                 body.Add(new KeyValuePair<string, string>("password", request.Password));
+                body.Add(new KeyValuePair<string, string>("captcha_key", request.CaptchaKey));
 
                 var requestMessage = new HttpRequestMessage()
                 {

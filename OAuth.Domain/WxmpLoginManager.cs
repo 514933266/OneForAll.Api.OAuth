@@ -5,7 +5,7 @@ using OAuth.Domain.Enums;
 using OAuth.Domain.Interfaces;
 using OAuth.Domain.Models;
 using OAuth.Domain.Repositorys;
-using OAuth.HttpService.Interfaces;
+using OAuth.Domain.ValueObjects;
 using OAuth.HttpService.Models;
 using OneForAll.Core;
 using OneForAll.Core.DDD;
@@ -24,6 +24,7 @@ namespace OAuth.Domain
     /// </summary>
     public class WxmpLoginManager : BaseManager, IWxmpLoginManager
     {
+        private readonly OAuthLoginSettingVo _setting;
         private readonly IMapper _mapper;
         private readonly IWxmpHttpService _httpService;
         private readonly IIdentityServer4HttpService _identityHttpService;
@@ -32,6 +33,7 @@ namespace OAuth.Domain
         private readonly ISysWxClientRepository _clientRepository;
 
         public WxmpLoginManager(
+            OAuthLoginSettingVo setting,
             IMapper mapper,
             IWxmpHttpService httpService,
             IIdentityServer4HttpService identityHttpService,
@@ -39,6 +41,7 @@ namespace OAuth.Domain
             ISysWxUserRepository wxUserRepository,
             ISysWxClientRepository clientRepository)
         {
+            _setting = setting;
             _mapper = mapper;
             _httpService = httpService;
             _identityHttpService = identityHttpService;
@@ -102,11 +105,14 @@ namespace OAuth.Domain
         // 注册账号
         private async Task<SysUser> RegisterAsync(SysWxUser wxUser)
         {
+            // 如果没有该手机号的账号，则使用手机号作为用户名
+            var tt = TimeHelper.ToTimeStamp().ToString();
+            var useMobile = (await _userRepository.CountAsync(w => w.UserName == wxUser.Mobile)) == 0;
             var user = new SysUser()
             {
-                UserName = TimeHelper.ToTimeStamp().ToString(),
+                UserName = useMobile ? wxUser.Mobile : "Wxmp".Append(tt),
                 Mobile = wxUser.Mobile,
-                Name = wxUser.NickName,
+                Name = wxUser.NickName.IsNullOrEmpty() ? "微信用户".Append(tt) : wxUser.NickName,
                 Password = StringHelper.GetRandomString(20).ToMd5(),
                 Status = SysUserStatusEnum.Normal
             };
@@ -132,27 +138,35 @@ namespace OAuth.Domain
             var wxResponse = msg.GetData<WxmpLogin2SessionResponse>();
             var wxUser = _mapper.Map<WxmpLogin2SessionResponse, SysWxUser>(wxResponse);
             wxUser.AppId = client.AppId;
-            wxUser.AvatarUrl = form.UserInfo?.AvatarUrl ?? "";
-            wxUser.NickName = form.UserInfo?.NickName ?? "微信用户wxmp" + StringHelper.GetRandomString(5);
+            wxUser.NickName = "微信用户wxmp" + StringHelper.GetRandomString(5);
+            wxUser.AccessToken = client.AccessToken;
+            wxUser.AccessTokenCreateTime = client.AccessTokenCreateTime;
+            wxUser.AccessTokenExpiresIn = client.AccessTokenExpiresIn;
 
             if (!form.MobileCode.IsNullOrEmpty())
             {
                 // 微信手机号登录和快捷登录的code不同，只能用特殊的code换手机号
                 var phone = await _httpService.GetPhoneNumberAsync(new WxmpPhoneNumberRequest() { Code = form.MobileCode }, client.AccessToken);
                 if (phone.IsNullOrEmpty())
-                    return msg.Fail("微信手机号获取失败");
+                    return msg.Fail(BaseErrType.DataError, "微信手机号获取失败");
                 wxUser.Mobile = phone;
-                wxUser.AccessToken = client.AccessToken;
-                wxUser.AccessTokenCreateTime = client.AccessTokenCreateTime;
-                wxUser.AccessTokenExpiresIn = client.AccessTokenExpiresIn;
+            }
+            else if (!form.PhoneNumber.IsNullOrEmpty())
+            {
+                // 手机验证码登录
+                if (!form.PhoneNumber.IsMobile())
+                    return msg.Fail(BaseErrType.DataError, "手机号码格式错误");
+                wxUser.Mobile = form.PhoneNumber;
+            }
 
+            if (!wxUser.Mobile.IsNullOrEmpty())
+            {
                 msg.Data = wxUser;
-                return msg.Success();
+                return msg.Success("登录成功");
             }
             else
             {
-                // 如果使用微信快捷登录，没有手机号，则需要先通过手机号和微信号的关联绑定
-                return msg.Fail("请通过手机号登录");
+                return msg.Success("登录失败");
             }
         }
 
@@ -166,7 +180,8 @@ namespace OAuth.Domain
                 ClientSecret = client.Secret,
                 GrantType = "password",
                 Username = user.UserName,
-                Password = user.Password
+                Password = user.Password,
+                CaptchaKey = _setting.IgnoreCaptchaKey
             });
 
             if (!tokenResponse.AccessToken.IsNullOrEmpty())

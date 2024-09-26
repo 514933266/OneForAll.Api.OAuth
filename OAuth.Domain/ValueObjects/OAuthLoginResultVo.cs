@@ -35,5 +35,10 @@ namespace OAuth.Domain.ValueObjects
         /// 剩余冻结时间
         /// </summary>
         public double LessBanTime { get; set; }
+
+        /// <summary>
+        /// 需要提交验证码
+        /// </summary>
+        public bool IsRequiredCaptcha { get; set; }
     }
 }

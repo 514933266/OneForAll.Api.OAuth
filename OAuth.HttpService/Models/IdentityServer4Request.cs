@@ -41,5 +41,17 @@ namespace SysLog.HttpService.Models
         /// </summary>
         [JsonProperty("password")]
         public string Password { get; set; }
+
+        /// <summary>
+        /// 验证码
+        /// </summary>
+        [JsonProperty("captcha")]
+        public string Captcha { get; set; }
+
+        /// <summary>
+        /// 验证码秘钥
+        /// </summary>
+        [JsonProperty("captcha_key")]
+        public string CaptchaKey { get; set; }
     }
 }

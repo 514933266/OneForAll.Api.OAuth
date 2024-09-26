@@ -8,13 +8,13 @@ using System.Threading.Tasks;
 using OAuth.Domain.Repositorys;
 using OAuth.Domain.Interfaces;
 using AutoMapper;
-using Microsoft.Extensions.Caching.Distributed;
-using OneForAll.Core.Extension;
-using OAuth.Repository;
-using OAuth.Public.Models;
 using OAuth.Domain.Aggregates;
 using OAuth.Domain.Enums;
 using OneForAll.Core.OAuth;
+using Microsoft.Extensions.Caching.Distributed;
+using OneForAll.Core.Extension;
+using System.Runtime.CompilerServices;
+using OAuth.Repository;
 
 namespace OAuth.Domain
 {
@@ -25,14 +25,17 @@ namespace OAuth.Domain
     {
         private readonly IMapper _mapper;
         private readonly ISysUserRepository _userRepository;
+        private readonly ISysTenantRepository _tenantRepository;
         private readonly OAuthLoginSettingVo _setting;
         public OAuthLoginManager(
             IMapper mapper,
             ISysUserRepository userRepository,
+            ISysTenantRepository tenantRepository,
             OAuthLoginSettingVo setting)
         {
             _mapper = mapper;
             _userRepository = userRepository;
+            _tenantRepository = tenantRepository;
             _setting = setting;
         }
 
@@ -44,17 +47,21 @@ namespace OAuth.Domain
         public async Task<OAuthLoginResultVo> LoginAsync(OAuthLoginVo loginUser)
         {
             var result = new OAuthLoginResultVo() { ErrType = BaseErrType.Success };
-            var user = await _userRepository.GetWithTenantAsync(loginUser.UserName);
+            var user = await _userRepository.GetAsync(loginUser.UserName);
             ValidateUserAsync(user, result);
             if (result.ErrType == BaseErrType.Success)
             {
-                ValidateBanTimeAsync(user, result);
+                ValidateTenantAsync(user, result);
                 if (result.ErrType == BaseErrType.Success)
                 {
-                    await ValidatePasswordAsync(user, loginUser, result);
+                    ValidateBanTimeAsync(user, result);
                     if (result.ErrType == BaseErrType.Success)
                     {
-                        await LoginSuccessAsync(user, loginUser.IPAddress);
+                        await ValidatePasswordAsync(user, loginUser, result);
+                        if (result.ErrType == BaseErrType.Success)
+                        {
+                            await LoginSuccessAsync(user, loginUser.IPAddress);
+                        }
                     }
                 }
             }
@@ -67,28 +74,23 @@ namespace OAuth.Domain
         /// <param name="user">用户</param>
         /// <param name="result">传入结果</param>
         /// <returns>结果</returns>
-        private void ValidateUserAsync(SysLoginUserAggr user, OAuthLoginResultVo result)
+        private void ValidateUserAsync(SysUser user, OAuthLoginResultVo result)
         {
             if (user == null)
             {
                 // 账号不存在
                 result.ErrType = BaseErrType.DataNotFound;
             }
-            else if (user.SysTenant?.IsEnabled == false)
-            {
-                // 机构停用
-                result.ErrType = BaseErrType.PermissionNotEnough;
-            }
             else if (user.Status == SysUserStatusEnum.Normal)
             {
                 var loginUser = _mapper.Map<SysUser, LoginUser>(user);
                 result.User = loginUser;
-                result.SysTenant = user.SysTenant;
             }
-            else if (user.Status >= SysUserStatusEnum.Frozen && user.Status < SysUserStatusEnum.Banned)
+            else if (user.Status == SysUserStatusEnum.Frozen)
             {
                 // 账号冻结
                 result.ErrType = BaseErrType.Frozen;
+                ValidateBanTimeAsync(user, result);
             }
             else if (user.Status == SysUserStatusEnum.Banned)
             {
@@ -99,6 +101,28 @@ namespace OAuth.Domain
             {
                 // 账号异常
                 result.ErrType = BaseErrType.DataError;
+            }
+        }
+
+        /// <summary>
+        /// 验证用户
+        /// </summary>
+        /// <param name="user">用户</param>
+        /// <param name="result">传入结果</param>
+        /// <returns>结果</returns>
+        private async void ValidateTenantAsync(SysUser user, OAuthLoginResultVo result)
+        {
+            var tenant = await _tenantRepository.FindAsync(user.SysTenantId);
+            if (tenant == null)
+            {
+                // 新注册用户不一定有租户，为不阻止用户注册登录流程，此处返回success
+                result.ErrType = BaseErrType.Success;
+            }
+            else
+            {
+                result.SysTenant = tenant;
+                if (!tenant.IsEnabled)
+                    result.ErrType = BaseErrType.PermissionNotEnough;
             }
         }
 
@@ -151,24 +175,24 @@ namespace OAuth.Domain
             var pass = user.Password.Equals(loginUser.Password);
             if (!pass)
             {
-                if (user.PwdErrCount >= _setting.MaxPwdErrCount - 1)
+                user.PwdErrCount += 1;
+                if (user.PwdErrCount >= _setting.MaxPwdErrCount)
                 {
-                    user.PwdErrCount = 0;
-                    user.UpdateTime = DateTime.Now;
                     user.Status = SysUserStatusEnum.Frozen;
-                    await _userRepository.SaveChangesAsync();
 
+                    // 错误超过最大次数后需要验证码
+                    result.IsRequiredCaptcha = true;
                     result.LessPwdErrCount = 0;
                     result.ErrType = BaseErrType.Frozen;
                     result.LessBanTime = _setting.BanTime;
                 }
                 else
                 {
-                    user.PwdErrCount++;
-                    await _userRepository.SaveChangesAsync();
                     result.LessPwdErrCount = _setting.MaxPwdErrCount - user.PwdErrCount;
                     result.ErrType = BaseErrType.PasswordInvalid;
                 }
+                user.UpdateTime = DateTime.Now;
+                var effected = await _userRepository.SaveChangesAsync();
             }
         }
 
