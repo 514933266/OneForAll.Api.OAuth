@@ -8,12 +8,8 @@ using System.Threading.Tasks;
 using OAuth.Domain.Repositorys;
 using OAuth.Domain.Interfaces;
 using AutoMapper;
-using OAuth.Domain.Aggregates;
 using OAuth.Domain.Enums;
 using OneForAll.Core.OAuth;
-using Microsoft.Extensions.Caching.Distributed;
-using OneForAll.Core.Extension;
-using System.Runtime.CompilerServices;
 using OAuth.Repository;
 
 namespace OAuth.Domain
@@ -192,7 +188,7 @@ namespace OAuth.Domain
                     result.ErrType = BaseErrType.PasswordInvalid;
                 }
                 user.UpdateTime = DateTime.Now;
-                var effected = await _userRepository.SaveChangesAsync();
+                await _userRepository.SaveChangesAsync();
             }
         }
 
@@ -202,14 +198,14 @@ namespace OAuth.Domain
         /// <param name="user">用户</param>
         /// <param name="loginIp">登录io</param>
         /// <returns>结果</returns>
-        private async Task<BaseErrType> LoginSuccessAsync(SysUser user, string loginIp)
+        private async Task LoginSuccessAsync(SysUser user, string loginIp)
         {
             user.PwdErrCount = 0;
             user.LastLoginIp = loginIp;
             user.LastLoginTime = DateTime.Now;
             user.UpdateTime = DateTime.Now;
             user.Status = SysUserStatusEnum.Normal;
-            return await ResultAsync(() => _userRepository.SaveChangesAsync());
+            await _userRepository.SaveChangesAsync();
         }
     }
 }

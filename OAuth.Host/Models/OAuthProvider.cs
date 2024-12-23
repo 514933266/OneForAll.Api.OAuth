@@ -1,10 +1,8 @@
-﻿using IdentityServer4.Models;
-using OAuth.Host.Models;
-using OAuth.Public.Models;
+﻿using Duende.IdentityServer.Models;
 using OneForAll.Core.Extension;
 using OneForAll.Core.OAuth;
 using System.Collections.Generic;
-using static IdentityServer4.IdentityServerConstants;
+using static Duende.IdentityServer.IdentityServerConstants;
 
 namespace OAuth.Host.Models
 {

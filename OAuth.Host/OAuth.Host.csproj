@@ -21,11 +21,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Autofac" Version="8.0.0" />
-    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="9.0.0" />
+    <PackageReference Include="Autofac" Version="8.2.0" />
+    <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="10.0.0" />
     <PackageReference Include="AutoMapper" Version="13.0.1" />
-    <PackageReference Include="IdentityServer4" Version="4.1.2" />
-    <PackageReference Include="IdentityServer4.EntityFramework" Version="4.1.2" />
+    <PackageReference Include="Duende.IdentityServer" Version="7.0.8" />
+    <PackageReference Include="Duende.IdentityServer.EntityFramework" Version="7.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="8.0.6" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="8.0.6" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.6" />
@@ -36,7 +36,7 @@
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="8.0.6" />
     <PackageReference Include="OneForAll.Core" Version="2.0.2" />
     <PackageReference Include="OneForAll.EFCore" Version="2.0.1" />
-    <PackageReference Include="Quartz" Version="3.10.0" />
+    <PackageReference Include="Quartz" Version="3.13.1" />
   </ItemGroup>
 
   <ItemGroup>

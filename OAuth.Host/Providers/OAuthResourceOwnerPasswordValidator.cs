@@ -1,6 +1,4 @@
-﻿using IdentityServer4.Models;
-using IdentityServer4.Validation;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -17,6 +15,8 @@ using OAuth.Domain.Repositorys;
 using OAuth.Domain.Enums;
 using OneForAll.Core.OAuth;
 using OAuth.Application.Interfaces;
+using Duende.IdentityServer.Validation;
+using Duende.IdentityServer.Models;
 
 namespace OAuth.Host.Providers
 {
@@ -111,7 +111,7 @@ namespace OAuth.Host.Providers
                 case BaseErrType.AuthCodeInvalid: msg.Message = "验证码错误"; break;
                 case BaseErrType.PasswordInvalid: msg.Message = "密码输入错误，还可尝试{0}次".Fmt(result.LessPwdErrCount); break;
                 case BaseErrType.Frozen:
-                    msg.Data = new { IsRequiredCaptcha = result.IsRequiredCaptcha };
+                    msg.Data = new { result.IsRequiredCaptcha };
                     msg.Message = "账号已被冻结，请{0}分钟后再尝试登陆".Fmt(Math.Round(result.LessBanTime)); break;
             }
             context.Result = GetResult(TokenRequestErrors.InvalidClient, msg);

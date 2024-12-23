@@ -1,14 +1,8 @@
-﻿using Microsoft.Extensions.Hosting;
-using System.Threading;
-using System.Threading.Channels;
-using System.Threading.Tasks;
-using OAuth.Domain.Interfaces;
-using IdentityServer4.EntityFramework.DbContexts;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.Extensions.DependencyInjection;
 using System;
 using Microsoft.EntityFrameworkCore;
 using OAuth.Host.Models;
+using Duende.IdentityServer.EntityFramework.DbContexts;
 
 namespace OAuth.Host.Providers
 {

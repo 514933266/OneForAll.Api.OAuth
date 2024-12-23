@@ -4,11 +4,9 @@ using System.Threading.Tasks;
 using OAuth.Domain.Repositorys;
 using OAuth.HttpService.Interfaces;
 using System;
-using IdentityServer4.Extensions;
 using System.Linq;
-using OAuth.Application.Dtos;
 using OAuth.HttpService.Models;
-using OneForAll.EFCore;
+using OneForAll.Core.Extension;
 
 namespace OAuth.Host.QuartzJobs
 {

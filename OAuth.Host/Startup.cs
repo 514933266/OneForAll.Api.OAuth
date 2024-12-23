@@ -23,13 +23,11 @@ using Quartz;
 using OAuth.Host.Providers;
 using OAuth.Host.Filters;
 using System.Linq;
-using IdentityServer4.Configuration;
 
 namespace OAuth.Host
 {
     public class Startup
     {
-        private const string AUTH_SERVER = "IdentityServer";
         private const string CORS = "Cors";
         private const string AUTH = "Auth";
         private const string QUARTZ = "Quartz";
@@ -70,9 +68,11 @@ namespace OAuth.Host
             var props = OneForAll.Core.Utility.ReflectionHelper.GetPropertys(serviceConfig);
             props.ForEach(e =>
             {
+                var url = e.GetValue(serviceConfig).ToString();
+                if (url.IsNullOrEmpty()) return;
                 services.AddHttpClient(e.Name, c =>
                 {
-                    c.BaseAddress = new Uri(e.GetValue(serviceConfig).ToString());
+                    c.BaseAddress = new Uri(url);
                     c.DefaultRequestHeaders.Add("ClientId", ClientClaimType.Id);
                 });
             });
@@ -96,27 +96,16 @@ namespace OAuth.Host
             services.AddSingleton(authServerConfig);
             using (var context = new SysDbContext(dbOptions))
             {
-                var migrationsAssembly = typeof(Startup).GetTypeInfo().Assembly.GetName().Name;
-                var identityConnString = Configuration["ConnectionStrings:IdentityServer"];
+                // 如果表中有配置客户端，则覆盖json文件配置
                 var clients = context.SysClient.ToList();
-
                 if (clients.Any())
-                {
-                    // 如果表中有配置客户端，则覆盖json文件配置
                     authServerConfig.Init(clients);
-                }
 
                 services.AddIdentityServer(option =>
                 {
                     option.IssuerUri = authConfig.Issuer;
                 })
                 .AddDeveloperSigningCredential()
-                .AddOperationalStore(options =>
-                {
-                    options.ConfigureDbContext = builder => builder.UseSqlServer(identityConnString, sql => sql.MigrationsAssembly(migrationsAssembly));
-                    // 自动清理Token
-                    options.EnableTokenCleanup = true;
-                })
                 .AddInMemoryApiResources(OAuthProvider.GetApiResources(authServerConfig))
                 .AddInMemoryClients(OAuthProvider.GetClients(authServerConfig))
                 .AddInMemoryIdentityResources(OAuthProvider.GetIdentityResources(authServerConfig))
@@ -150,6 +139,8 @@ namespace OAuth.Host
             {
                 options.Configuration = Configuration["Redis:ConnectionString"];
                 options.InstanceName = Configuration["Redis:InstanceName"];
+                if (!Configuration["Redis:Password"].IsNullOrEmpty())
+                    options.ConfigurationOptions.Password = Configuration["Redis:Password"];
             });
             #endregion
 
